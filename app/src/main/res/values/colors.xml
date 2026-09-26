@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 品牌主色：教育蓝 -->
+    <color name="primary">#1B7AE0</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="primary_container">#D8E9FF</color>
+    <color name="on_primary_container">#062E5C</color>
+
+    <!-- 辅助色：青 -->
+    <color name="secondary">#12B3A8</color>
+    <color name="on_secondary">#FFFFFF</color>
+    <color name="secondary_container">#C7F4EE</color>
+    <color name="on_secondary_container">#033A34</color>
+
+    <!-- 第三色：天蓝 -->
+    <color name="tertiary">#0EA5E9</color>
+    <color name="on_tertiary">#FFFFFF</color>
+    <color name="tertiary_container">#D2EFFD</color>
+    <color name="on_tertiary_container">#06324A</color>
+
+    <!-- 表面与背景 -->
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_variant">#EAF1F8</color>
+    <color name="on_surface">#17263A</color>
+    <color name="on_surface_variant">#55667A</color>
+    <color name="background">#F4F7FB</color>
+    <color name="on_background">#17263A</color>
+    <color name="outline">#C4D2E1</color>
+    <color name="outline_variant">#DCE5EF</color>
+
+    <!-- 错误/拦截 -->
+    <color name="error">#D72C2C</color>
+    <color name="on_error">#FFFFFF</color>
+    <color name="error_container">#FDE3E3</color>
+    <color name="on_error_container">#5C1212</color>
+
+    <!-- 工具栏 -->
+    <color name="toolbar_bg">#FDFEFF</color>
+    <color name="address_bg">#EEF3F9</color>
+    <color name="address_text">#17263A</color>
+    <color name="nav_icon">#42546B</color>
+
+    <!-- 兼容旧引用 -->
+    <color name="primary_dark">#155DB8</color>
+    <color name="bg">#F4F7FB</color>
+    <color name="text_main">#17263A</color>
+    <color name="text_muted">#55667A</color>
+</resources>

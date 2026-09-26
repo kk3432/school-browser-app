@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">校园浏览器</string>
+    <string name="setup_title">连接配置服务器</string>
+    <string name="setup_hint">请输入服务器地址，如 http://192.168.1.10:8080</string>
+    <string name="setup_connect">连接并获取配置</string>
+    <string name="setup_required">首次启动必须成功获取配置后才能进入</string>
+    <string name="blocked_title">访问受限</string>
+    <string name="blocked_text">该网址不在允许访问的范围内。</string>
+    <string name="error_title">页面加载失败</string>
+    <string name="retry">重试</string>
+</resources>

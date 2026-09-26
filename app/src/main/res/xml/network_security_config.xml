@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  服务器地址由管理员在首次启动时手工填写（可能是内网 http://IP:端口），
+  因此这里允许明文 HTTP。正式部署若固定了内网域名，可改为只对该域名放行：
+  <domain includeSubdomains="true">config.example.edu.cn</domain>
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
