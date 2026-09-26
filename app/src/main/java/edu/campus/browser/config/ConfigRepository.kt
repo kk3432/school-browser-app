@@ -10,14 +10,19 @@ import edu.campus.browser.SecurityConfig
 import edu.campus.browser.crypto.Crypto
 import com.tencent.mmkv.MMKV
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import java.io.File
 import java.io.IOException
 import java.net.Inet4Address
 import java.net.NetworkInterface
 import java.net.URI
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 /**
@@ -215,6 +220,73 @@ class ConfigRepository private constructor(private val context: Context) {
             null
         }
     }
+
+    // ---------- 启动照片上传（v0.5.0） ----------
+
+    /** 上传前置摄像头 JPEG（multipart）。成功 true；网络/服务端拒绝（含限频 429）返回 false，由调用方缓存待补传。 */
+    fun uploadPhoto(jpeg: ByteArray): Boolean {
+        val baseUrl = getBaseUrl() ?: return false
+        val body = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("device_id", deviceId())
+            .addFormDataPart("captured_at", isoNow())
+            .addFormDataPart("image", "startup.jpg", jpeg.toRequestBody("image/jpeg".toMediaType()))
+            .build()
+        return try {
+            val request = Request.Builder().url("$baseUrl/api/v1/photo").post(body).build()
+            client.newCall(request).execute().use { it.isSuccessful }
+        } catch (e: Exception) {
+            Log.w(TAG, "照片上传失败：${e.message}")
+            false
+        }
+    }
+
+    /** 无前置摄像头等原因跳过拍照时上报原因（不落盘照片）。 */
+    fun uploadPhotoSkip(reason: String): Boolean {
+        val baseUrl = getBaseUrl() ?: return false
+        val body = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("device_id", deviceId())
+            .addFormDataPart("skip_reason", reason)
+            .build()
+        return try {
+            val request = Request.Builder().url("$baseUrl/api/v1/photo").post(body).build()
+            client.newCall(request).execute().use { it.isSuccessful }
+        } catch (e: Exception) {
+            Log.w(TAG, "跳过原因上报失败：${e.message}")
+            false
+        }
+    }
+
+    /** 上传失败的照片写私有目录缓存，下次启动补传（沿用"三级兜底"思路）。 */
+    fun savePendingPhoto(jpeg: ByteArray): Boolean = try {
+        val dir = pendingPhotoDir().apply { mkdirs() }
+        File(dir, "photo_${System.currentTimeMillis()}.jpg").writeBytes(jpeg)
+        true
+    } catch (e: Exception) {
+        Log.w(TAG, "照片缓存失败：${e.message}")
+        false
+    }
+
+    /** 启动时补传上次遗留的照片：逐个上传，成功即删；失败保留（含限频 429）等下次。返回成功张数。 */
+    fun flushPendingPhotos(): Int {
+        val dir = pendingPhotoDir()
+        val files = dir.listFiles { f -> f.isFile && f.name.endsWith(".jpg") } ?: return 0
+        var ok = 0
+        for (f in files) {
+            val bytes = runCatching { f.readBytes() }.getOrNull() ?: continue
+            if (uploadPhoto(bytes)) {
+                f.delete()
+                ok++
+            }
+        }
+        return ok
+    }
+
+    private fun pendingPhotoDir(): File = File(context.filesDir, "pending_photos")
+
+    private fun isoNow(): String =
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US).format(Date())
 
     companion object {
         private const val TAG = "ConfigRepository"

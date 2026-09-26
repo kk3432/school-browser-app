@@ -21,8 +21,8 @@ android {
         applicationId = "edu.campus.browser"
         minSdk = 24
         targetSdk = 34
-        versionCode = 5
-        versionName = "0.4.0"
+        versionCode = 6
+        versionName = "0.5.0"
         // 仅保留真机常用 ABI，减小体积（x86/x86_64 仅模拟器需要）
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
@@ -77,4 +77,9 @@ dependencies {
 
     // 二维码扫描（ZXing 官方 Android 封装，成熟高 star、离线可用）
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+
+    // 启动前置拍照（CameraX：官方稳定、可指定前置、静默无 UI 拍照；v0.5.0 起）
+    implementation("androidx.camera:camera-core:1.3.4")
+    implementation("androidx.camera:camera-camera2:1.3.4")
+    implementation("androidx.camera:camera-lifecycle:1.3.4")
 }

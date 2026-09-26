@@ -19,12 +19,14 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import edu.campus.browser.applaunch.AppLauncher
 import edu.campus.browser.applaunch.LaunchResult
+import edu.campus.browser.capture.FrontCameraCapture
 import edu.campus.browser.config.AppConfig
 import edu.campus.browser.config.ConfigRepository
 import edu.campus.browser.databinding.ActivityMainBinding
 import edu.campus.browser.net.UrlRuleMatcher
 import edu.campus.browser.scan.QrScanner
 import edu.campus.browser.ui.AdminSession
+import edu.campus.browser.ui.PermissionManager
 import edu.campus.browser.ui.setup.SetupActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -32,12 +34,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var repo: ConfigRepository
     private lateinit var scanner: QrScanner
+    private lateinit var permissionManager: PermissionManager
+    private var cameraCapture: FrontCameraCapture? = null
     private var config: AppConfig? = null
     private var pollJob: Job? = null
 
@@ -58,6 +63,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        permissionManager = PermissionManager(this)
         configureWebView()
         scanner = QrScanner(this)
         setupToolbar()
@@ -76,9 +82,20 @@ class MainActivity : AppCompatActivity() {
             binding.webView.reload()
         }
 
-        // loadUrl 由宿主发起时不触发 shouldOverrideUrlLoading，首页需主动校验一次
-        navigateTo(config!!.homeUrl)
-        startPolling()
+        // v0.5.0 启动序列：补传遗留照片 → 先拉一次最新配置（短超时，失败用缓存）→ 按服务端
+        // require_startup_photo 决策权限/拍照 → 最后进入浏览器（拍照与页面加载并行，不阻塞浏览）
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) { repo.flushPendingPhotos() }
+            val fresh = withTimeoutOrNull(STARTUP_CONFIG_TIMEOUT_MS) {
+                withContext(Dispatchers.IO) { repo.refresh() }
+            }
+            if (fresh != null) {
+                config = fresh
+                applyAddressBarMode()
+                applyScreenshotPolicy()
+            }
+            runStartupGate()
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -397,12 +414,91 @@ class MainActivity : AppCompatActivity() {
         // 受管浏览器：不允许返回键退出
     }
 
+    // ---------- v0.5.0 启动门控：拍照要求与权限 ----------
+
+    /**
+     * 依据最新配置决定是否执行"启动前置拍照"。
+     * 服务端 require_startup_photo=true：先说明用途 → 申请相机权限 → 被拒则阻断进入（不可取消）；
+     * 为 false：直接进入浏览器（权限留给扫码时按需申请）。
+     */
+    private fun runStartupGate() {
+        val cfg = config ?: return
+        if (!cfg.requireStartupPhoto) {
+            enterBrowser()
+            return
+        }
+        val missing = PermissionManager.missing(this)
+        if (missing.isNotEmpty()) {
+            PermissionManager.showRationale(
+                this,
+                "需要相机权限",
+                "学校要求使用平板前进行身份拍照确认。照片仅上传到学校服务器，用于考勤管理，不对外发送。",
+                onProceed = { requestCameraPermission() },
+                onCancel = { showPermissionBlocked() }
+            )
+        } else {
+            doStartupPhoto()
+        }
+    }
+
+    private fun requestCameraPermission() {
+        permissionManager.request { granted ->
+            if (granted) doStartupPhoto() else showPermissionBlocked()
+        }
+    }
+
+    /** 服务端要求拍照但相机未授权：阻断进入浏览器，仅提供重试授权或退出。 */
+    private fun showPermissionBlocked() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("无法进入浏览器")
+            .setMessage("学校要求启动时使用相机拍照确认身份。未授权相机权限将无法使用本浏览器。")
+            .setCancelable(false)
+            .setPositiveButton("重新授权") { _, _ -> requestCameraPermission() }
+            .setNegativeButton("退出") { _, _ -> finish() }
+            .show()
+    }
+
+    /** 前置拍照并上传：无前置则上报跳过（不阻断）；拍照/上传失败缓存待下次补传（不阻断）。 */
+    private fun doStartupPhoto() {
+        val capture = FrontCameraCapture(this, this)
+        cameraCapture = capture
+        lifecycleScope.launch {
+            if (!capture.hasFrontCamera()) {
+                withContext(Dispatchers.IO) { repo.uploadPhotoSkip("no_front_camera") }
+                capture.close()
+                enterBrowser()
+                return@launch
+            }
+            val jpeg = capture.captureJpeg()
+            if (jpeg != null) {
+                val uploaded = withContext(Dispatchers.IO) { repo.uploadPhoto(jpeg) }
+                if (!uploaded) repo.savePendingPhoto(jpeg)
+            }
+            // 拍照失败（相机被占用等）不阻断，下次启动再试
+            capture.close()
+            enterBrowser()
+        }
+    }
+
+    private fun enterBrowser() {
+        val cfg = config ?: return
+        // loadUrl 由宿主发起时不触发 shouldOverrideUrlLoading，首页需主动校验一次
+        navigateTo(cfg.homeUrl)
+        startPolling()
+    }
+
     override fun onDestroy() {
         pollJob?.cancel()
+        cameraCapture?.close()
         runCatching {
             binding.webView.stopLoading()
             binding.webView.destroy()
         }
         super.onDestroy()
+    }
+
+    companion object {
+        /** 启动时先拉最新配置的等待上限；服务器不可达时回退本地缓存，避免卡住启动。 */
+        private const val STARTUP_CONFIG_TIMEOUT_MS = 5000L
     }
 }

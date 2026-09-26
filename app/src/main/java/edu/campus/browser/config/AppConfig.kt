@@ -30,6 +30,7 @@ data class AppConfig(
     val kiosk: Boolean,
     val hiddenEntryEnabled: Boolean,
     val blockScreenshot: Boolean,
+    val requireStartupPhoto: Boolean,
     val allowedApps: List<AllowedApp>,
     val adminPinHash: String
 ) {
@@ -72,6 +73,7 @@ data class AppConfig(
                 // 旧配置无字段时默认开启，保持与升级前行为一致
                 hiddenEntryEnabled = o.optBoolean("hidden_entry_enabled", true),
                 blockScreenshot = o.optBoolean("block_screenshot", true),
+                requireStartupPhoto = o.optBoolean("require_startup_photo", false),
                 allowedApps = allowedApps,
                 adminPinHash = o.optString("admin_pin_hash", "")
             )
