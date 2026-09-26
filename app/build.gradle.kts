@@ -1,7 +1,17 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
+
+// 读取签名配置（keystore.properties 不入库，含密钥库路径与密码）
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("app/keystore.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
+}
+val keystoreFile = rootProject.file("app/${keystoreProperties["storeFile"]}")
 
 android {
     namespace = "edu.campus.browser"
@@ -13,11 +23,26 @@ android {
         targetSdk = 34
         versionCode = 5
         versionName = "0.4.0"
+        // 仅保留真机常用 ABI，减小体积（x86/x86_64 仅模拟器需要）
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = keystoreFile
+            storePassword = keystoreProperties["storePassword"] as String
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
