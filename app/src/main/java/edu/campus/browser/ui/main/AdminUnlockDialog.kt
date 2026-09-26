@@ -1,13 +1,21 @@
 package edu.campus.browser.ui.main
 
+import android.Manifest
 import android.app.Activity
+import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import edu.campus.browser.SecurityConfig
+import edu.campus.browser.capture.FrontCameraCapture
 import edu.campus.browser.config.AppConfig
+import edu.campus.browser.config.ConfigRepository
 import edu.campus.browser.crypto.Crypto
 import edu.campus.browser.databinding.DialogAdminPinBinding
 import com.tencent.mmkv.MMKV
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * 隐藏入口调出的管理员解锁：输入 6 位密码，本地 MD5 比对配置中的哈希。
@@ -59,6 +67,8 @@ class AdminUnlockDialog private constructor() {
                     dialog.dismiss()
                     showActions(activity, onAction)
                 } else {
+                    // 输错密码：异步拍一张前置照片上传服务端（不阻塞对话框，失败静默）
+                    captureWrongPinPhoto(activity)
                     val fails = kv.decodeInt(KV_FAIL_COUNT, 0) + 1
                     kv.encode(KV_FAIL_COUNT, fails)
                     if (fails >= SecurityConfig.MAX_PIN_ATTEMPTS) {
@@ -85,6 +95,28 @@ class AdminUnlockDialog private constructor() {
                 }
                 .setNegativeButton("关闭", null)
                 .show()
+        }
+
+        /**
+         * 输错密码时静默拍一张前置照片上传（type=wrong_pin）。
+         * 无相机权限/无前置摄像头/拍照失败均静默跳过，不弹权限框（避免输错密码反而触发权限弹窗暴露行为）；
+         * 上传失败不缓存（即时安全事件，缓存无意义且可能留存敏感照片）。
+         */
+        private fun captureWrongPinPhoto(activity: AppCompatActivity) {
+            if (ContextCompat.checkSelfPermission(activity, Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) return
+            activity.lifecycleScope.launch(Dispatchers.IO) {
+                val capture = FrontCameraCapture(activity, activity)
+                try {
+                    if (!capture.hasFrontCamera()) return@launch
+                    val jpeg = capture.captureJpeg() ?: return@launch
+                    ConfigRepository.get(activity).uploadPhoto(jpeg, "wrong_pin")
+                } catch (_: Exception) {
+                    // 静默失败
+                } finally {
+                    capture.close()
+                }
+            }
         }
     }
 }

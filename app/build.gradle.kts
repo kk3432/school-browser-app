@@ -21,8 +21,8 @@ android {
         applicationId = "edu.campus.browser"
         minSdk = 24
         targetSdk = 34
-        versionCode = 6
-        versionName = "0.5.0"
+        versionCode = 7
+        versionName = "0.6.0"
         // 仅保留真机常用 ABI，减小体积（x86/x86_64 仅模拟器需要）
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")

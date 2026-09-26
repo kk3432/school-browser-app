@@ -2,13 +2,15 @@
 
 Android 原生 Kotlin，基于系统 WebView 的轻量受管浏览器：服务端统一下发配置，平板端按白/黑名单管控访问，适用于校园信息门户、电子班牌、教室平板统一上网管控。
 
-当前版本：**v0.4.0**（versionCode 5）
+当前版本：**v0.6.0**（versionCode 7）
 
 ## 功能
 
 - 首次启动必须填写服务器地址并成功拉取配置，否则无法进入
 - 按地址前缀自动使用 `http://` 或 `https://`（已在 `network_security_config.xml` 放行内网明文）
 - 启动直达配置首页，WebView 层强制白/黑名单拦截，禁长按菜单、禁下载
+- **启动权限自检与前置拍照**：启动先拉最新配置，服务端开启「要求启动拍照」时未授权相机权限无法进入；授权后 CameraX 前置静默拍一张上传，无前置摄像头则上报跳过，上传失败缓存待补传
+- **输错密码拍照告警**：管理员密码（含超密）输错一次即静默拍一张前置照片上传服务端，后台设备列表标红提醒
 - 顶部工具栏：后退 / 前进 / 地址栏（受管只读）/ **扫码** / 刷新 / 快捷书签 / **应用** / 回首页，带加载进度条
 - **扫码**：主界面工具栏与设置页均可扫码，支持网址二维码与 `app://包名` 应用二维码
 - **唤醒其他应用**：WebView 与扫码中的自定义 scheme 按服务端白名单拉起，工具栏「应用」按钮快速启动
@@ -54,16 +56,18 @@ app/src/main/java/edu/campus/browser/
 ├── App.kt                      # MMKV 初始化
 ├── SecurityConfig.kt           # 公钥、PIN 盐、锁定策略
 ├── crypto/Crypto.kt            # RSA 验签、PIN 哈希
-├── config/AppConfig.kt         # 配置模型（含 hiddenEntry/blockScreenshot/allowedApps）
-├── config/ConfigRepository.kt  # 注册/拉取/验签/缓存/轮询/IP 上报
+├── capture/FrontCameraCapture.kt # CameraX 前置静默拍照
+├── config/AppConfig.kt         # 配置模型（含 hiddenEntry/blockScreenshot/allowedApps/requireStartupPhoto）
+├── config/ConfigRepository.kt  # 注册/拉取/验签/缓存/轮询/IP 上报/照片上传
 ├── net/UrlRuleMatcher.kt       # 白/黑名单规则匹配
 ├── scan/QrScanner.kt           # ZXing 扫码封装
 ├── applaunch/AppLauncher.kt    # 白名单应用拉起
+├── ui/PermissionManager.kt     # 启动权限自检与批量申请
 ├── ui/setup/SetupActivity.kt   # 首启强制连接服务器
 └── ui/main/
-    ├── MainActivity.kt         # WebView 主界面、轮询、隐藏入口、扫码/应用按钮
+    ├── MainActivity.kt         # WebView 主界面、启动门控、轮询、隐藏入口、扫码/应用按钮
     ├── ManagedWebViewClient.kt # 跳转拦截与 scheme 处理
-    └── AdminUnlockDialog.kt    # 6 位密码解锁
+    └── AdminUnlockDialog.kt    # 6 位密码解锁（输错触发拍照上传）
 ```
 
 ## 开源依赖
@@ -73,6 +77,7 @@ app/src/main/java/edu/campus/browser/
 | Material Components for Android 1.12 | Material 3 主题与控件 |
 | SwipeRefreshLayout 1.1.0 | 下拉刷新 |
 | ZXing Android Embedded 4.3.0 | 二维码扫码 |
+| CameraX 1.3.4 | 前置摄像头静默拍照 |
 | OkHttp 4.12 | 网络请求 |
 | MMKV 1.3.9 | 配置本地缓存（腾讯，基于 mmap） |
 | AndroidX appcompat / constraintlayout / lifecycle | 基础组件 |

@@ -223,20 +223,25 @@ class ConfigRepository private constructor(private val context: Context) {
 
     // ---------- 启动照片上传（v0.5.0） ----------
 
-    /** 上传前置摄像头 JPEG（multipart）。成功 true；网络/服务端拒绝（含限频 429）返回 false，由调用方缓存待补传。 */
-    fun uploadPhoto(jpeg: ByteArray): Boolean {
+    /**
+     * 上传前置摄像头 JPEG（multipart）。
+     * [type]：startup=启动拍照（默认，兼容 v0.5.0）；wrong_pin=输错密码拍照。
+     * 成功 true；网络/服务端拒绝（含限频 429）返回 false，由调用方决定是否缓存待补传。
+     */
+    fun uploadPhoto(jpeg: ByteArray, type: String = "startup"): Boolean {
         val baseUrl = getBaseUrl() ?: return false
         val body = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
             .addFormDataPart("device_id", deviceId())
             .addFormDataPart("captured_at", isoNow())
-            .addFormDataPart("image", "startup.jpg", jpeg.toRequestBody("image/jpeg".toMediaType()))
+            .addFormDataPart("type", type)
+            .addFormDataPart("image", "$type.jpg", jpeg.toRequestBody("image/jpeg".toMediaType()))
             .build()
         return try {
             val request = Request.Builder().url("$baseUrl/api/v1/photo").post(body).build()
             client.newCall(request).execute().use { it.isSuccessful }
         } catch (e: Exception) {
-            Log.w(TAG, "照片上传失败：${e.message}")
+            Log.w(TAG, "照片上传失败（$type）：${e.message}")
             false
         }
     }
