@@ -59,10 +59,6 @@ class AdminUnlockDialog private constructor() {
                     binding.tvPinMsg.text = "请输入 6 位数字密码"
                     return@setOnClickListener
                 }
-                if (config.adminPinHash.isBlank()) {
-                    binding.tvPinMsg.text = "服务器尚未设置管理密码"
-                    return@setOnClickListener
-                }
                 // 服务端校验是网络请求，禁用按钮防止重复提交
                 binding.btnConfirm.isEnabled = false
                 binding.tvPinMsg.text = "验证中…"

@@ -31,8 +31,7 @@ data class AppConfig(
     val hiddenEntryEnabled: Boolean,
     val blockScreenshot: Boolean,
     val requireStartupPhoto: Boolean,
-    val allowedApps: List<AllowedApp>,
-    val adminPinHash: String
+    val allowedApps: List<AllowedApp>
 ) {
     companion object {
         fun parse(json: String): AppConfig {
@@ -74,8 +73,7 @@ data class AppConfig(
                 hiddenEntryEnabled = o.optBoolean("hidden_entry_enabled", true),
                 blockScreenshot = o.optBoolean("block_screenshot", true),
                 requireStartupPhoto = o.optBoolean("require_startup_photo", false),
-                allowedApps = allowedApps,
-                adminPinHash = o.optString("admin_pin_hash", "")
+                allowedApps = allowedApps
             )
         }
     }
