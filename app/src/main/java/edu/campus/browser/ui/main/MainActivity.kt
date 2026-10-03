@@ -56,6 +56,8 @@ class MainActivity : AppCompatActivity() {
         if (config == null) {
             // 首次启动且没有任何缓存配置：强制进入设置页，无法进入浏览器
             startActivity(Intent(this, SetupActivity::class.java))
+            @Suppress("DEPRECATION")
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
             finish()
             return
         }
@@ -335,8 +337,11 @@ class MainActivity : AppCompatActivity() {
                 val current = config ?: return@setOnClickListener
                 AdminUnlockDialog.show(this, current) { action ->
                     when (action) {
-                        AdminUnlockDialog.Action.CHANGE_SERVER ->
+                        AdminUnlockDialog.Action.CHANGE_SERVER -> {
                             startActivity(Intent(this, SetupActivity::class.java))
+                            @Suppress("DEPRECATION")
+                            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                        }
                         AdminUnlockDialog.Action.TEMP_UNLOCK -> {
                             AdminSession.bypassRules = true
                             applyAddressBarMode()

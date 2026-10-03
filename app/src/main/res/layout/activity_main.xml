@@ -10,12 +10,12 @@
     <LinearLayout
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
+        android:layout_height="54dp"
         android:background="@color/toolbar_bg"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="6dp"
-        android:paddingEnd="6dp">
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp">
 
         <!-- 品牌 Logo，同时是隐藏管理员入口（连点 5 次） -->
         <ImageView
@@ -41,6 +41,7 @@
             android:id="@+id/btn_forward"
             android:layout_width="42dp"
             android:layout_height="42dp"
+            android:layout_marginStart="2dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="前进"
             android:src="@drawable/ic_forward" />
@@ -49,8 +50,8 @@
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="36dp"
-            android:layout_marginStart="4dp"
-            android:layout_marginEnd="4dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
             android:layout_weight="1"
             android:background="@drawable/bg_address"
             android:gravity="center_vertical"
@@ -90,6 +91,7 @@
             android:id="@+id/btn_scan"
             android:layout_width="42dp"
             android:layout_height="42dp"
+            android:layout_marginStart="6dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="扫码"
             android:src="@drawable/ic_scan" />
@@ -98,6 +100,7 @@
             android:id="@+id/btn_refresh"
             android:layout_width="42dp"
             android:layout_height="42dp"
+            android:layout_marginStart="2dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="刷新"
             android:src="@drawable/ic_refresh" />
@@ -106,6 +109,7 @@
             android:id="@+id/btn_bookmarks"
             android:layout_width="42dp"
             android:layout_height="42dp"
+            android:layout_marginStart="2dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="快捷书签"
             android:src="@drawable/ic_bookmark" />
@@ -114,6 +118,7 @@
             android:id="@+id/btn_apps"
             android:layout_width="42dp"
             android:layout_height="42dp"
+            android:layout_marginStart="2dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="其他应用"
             android:src="@drawable/ic_apps" />
@@ -122,6 +127,7 @@
             android:id="@+id/btn_home"
             android:layout_width="42dp"
             android:layout_height="42dp"
+            android:layout_marginStart="2dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="回到首页"
             android:src="@drawable/ic_home" />

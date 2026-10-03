@@ -14,15 +14,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.Executors
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /**
- * 前置摄像头静默拍照（CameraX，v0.5.0）：
+ * 前置摄像头静默拍照（CameraX，v0.5.0；v0.7.0 加固稳定性）：
  * - 无预览 UI，启动时直接拍一张 JPEG，返回字节数组（内存传递，不落媒体库，无需存储权限）；
  * - [hasFrontCamera] 用于决策点：设备无前置摄像头时跳过并上报，不阻断进入；
- * - 拍照失败/超时返回 null，调用方跳过（下次启动再试），避免把设备锁死。
+ * - 拍照失败/超时返回 null，调用方跳过（下次启动再试），避免把设备锁死；
+ * - 全局 [captureMutex]：启动拍照与输错拍照共用一把锁，排队执行，避免多协程同时抢相机导致失败；
+ * - 超时默认 15 秒（v0.7.0 由 8 秒上调，兼容相机启动慢的低端平板）。
  */
 class FrontCameraCapture(
     private val context: Context,
@@ -42,43 +46,45 @@ class FrontCameraCapture(
         false
     }
 
-    /** 拍一张前置 JPEG；失败/超时/相机被占用返回 null。 */
-    suspend fun captureJpeg(timeoutMs: Long = 8000): ByteArray? = try {
-        withTimeout(timeoutMs) {
-            withContext(Dispatchers.Main) {
-                val provider = ProcessCameraProvider.getInstance(context).get()
-                val imageCapture = ImageCapture.Builder()
-                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                    .setJpegQuality(85)
-                    .build()
-                try {
-                    provider.unbindAll()
-                    provider.bindToLifecycle(
-                        lifecycleOwner,
-                        CameraSelector.DEFAULT_FRONT_CAMERA,
-                        imageCapture
-                    )
-                    suspendCancellableCoroutine { cont ->
-                        imageCapture.takePicture(
-                            executor,
-                            object : ImageCapture.OnImageCapturedCallback() {
-                                override fun onCaptureSuccess(image: ImageProxy) {
-                                    val buffer = image.planes[0].buffer
-                                    val bytes = ByteArray(buffer.remaining())
-                                    buffer.get(bytes)
-                                    image.close()
-                                    cont.resume(bytes)
-                                }
-
-                                override fun onError(exception: ImageCaptureException) {
-                                    cont.resumeWithException(exception)
-                                }
-                            }
+    /** 拍一张前置 JPEG；失败/超时/相机被占用返回 null。全局互斥，同一时刻只允许一次拍照。 */
+    suspend fun captureJpeg(timeoutMs: Long = 15000): ByteArray? = try {
+        captureMutex.withLock {
+            withTimeout(timeoutMs) {
+                withContext(Dispatchers.Main) {
+                    val provider = ProcessCameraProvider.getInstance(context).get()
+                    val imageCapture = ImageCapture.Builder()
+                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                        .setJpegQuality(85)
+                        .build()
+                    try {
+                        provider.unbindAll()
+                        provider.bindToLifecycle(
+                            lifecycleOwner,
+                            CameraSelector.DEFAULT_FRONT_CAMERA,
+                            imageCapture
                         )
+                        suspendCancellableCoroutine { cont ->
+                            imageCapture.takePicture(
+                                executor,
+                                object : ImageCapture.OnImageCapturedCallback() {
+                                    override fun onCaptureSuccess(image: ImageProxy) {
+                                        val buffer = image.planes[0].buffer
+                                        val bytes = ByteArray(buffer.remaining())
+                                        buffer.get(bytes)
+                                        image.close()
+                                        cont.resume(bytes)
+                                    }
+
+                                    override fun onError(exception: ImageCaptureException) {
+                                        cont.resumeWithException(exception)
+                                    }
+                                }
+                            )
+                        }
+                    } finally {
+                        // 无论成功/失败/取消，拍完立即解绑释放相机
+                        runCatching { provider.unbindAll() }
                     }
-                } finally {
-                    // 无论成功/失败/取消，拍完立即解绑释放相机
-                    runCatching { provider.unbindAll() }
                 }
             }
         }
@@ -93,5 +99,8 @@ class FrontCameraCapture(
 
     companion object {
         private const val TAG = "FrontCameraCapture"
+
+        /** 全局拍照互斥锁（启动拍照/输错拍照共用），避免相机被并发占用。 */
+        private val captureMutex = Mutex()
     }
 }

@@ -36,6 +36,16 @@ class ConfigRepository private constructor(private val context: Context) {
     private val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(10, TimeUnit.SECONDS)
+        // 统一 UA（v0.7.0）：所有访问服务端的请求带 OkHttp 标记，服务端据此区分 APP 与浏览器
+        .addInterceptor { chain ->
+            val request = chain.request().newBuilder()
+                .header(
+                    "User-Agent",
+                    "CampusBrowser/${edu.campus.browser.BuildConfig.VERSION_NAME} OkHttp/4.12"
+                )
+                .build()
+            chain.proceed(request)
+        }
         .build()
 
     fun isBootstrapped(): Boolean = kv.decodeBool(KEY_BOOTSTRAPPED, false)
@@ -221,6 +231,34 @@ class ConfigRepository private constructor(private val context: Context) {
         }
     }
 
+    // ---------- PIN 服务端校验（v0.7.0） ----------
+
+    /**
+     * 把 PIN 的 MD5 哈希发到服务端校验。
+     * 服务端比对当前配置的 admin_pin_hash，返回是否一致。
+     * 网络失败/离线/限频（429）/服务端拒绝均返回 false，调用方统一按「密码错误」处理。
+     */
+    fun verifyPin(pinHash: String): Boolean {
+        val baseUrl = getBaseUrl() ?: return false
+        val payload = JSONObject()
+            .put("deviceId", deviceId())
+            .put("pinHash", pinHash)
+        return try {
+            val request = Request.Builder()
+                .url("$baseUrl/api/v1/verify-pin")
+                .post(payload.toString().toRequestBody(JSON_MEDIA_TYPE))
+                .build()
+            client.newCall(request).execute().use { resp ->
+                if (!resp.isSuccessful) return false
+                val body = resp.body?.string() ?: return false
+                JSONObject(body).optBoolean("ok", false)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "PIN 服务端校验失败：${e.message}")
+            false
+        }
+    }
+
     // ---------- 启动照片上传（v0.5.0） ----------
 
     /**
@@ -263,10 +301,13 @@ class ConfigRepository private constructor(private val context: Context) {
         }
     }
 
-    /** 上传失败的照片写私有目录缓存，下次启动补传（沿用"三级兜底"思路）。 */
-    fun savePendingPhoto(jpeg: ByteArray): Boolean = try {
+    /**
+     * 上传失败的照片写私有目录缓存，下次启动补传。
+     * [type] 写入文件名前缀（startup/wrong_pin），补传时按原类型上报。
+     */
+    fun savePendingPhoto(jpeg: ByteArray, type: String = "startup"): Boolean = try {
         val dir = pendingPhotoDir().apply { mkdirs() }
-        File(dir, "photo_${System.currentTimeMillis()}.jpg").writeBytes(jpeg)
+        File(dir, "${type}_${System.currentTimeMillis()}.jpg").writeBytes(jpeg)
         true
     } catch (e: Exception) {
         Log.w(TAG, "照片缓存失败：${e.message}")
@@ -280,7 +321,9 @@ class ConfigRepository private constructor(private val context: Context) {
         var ok = 0
         for (f in files) {
             val bytes = runCatching { f.readBytes() }.getOrNull() ?: continue
-            if (uploadPhoto(bytes)) {
+            // 文件名形如 startup_xxx.jpg / wrong_pin_xxx.jpg，解析出补传类型
+            val type = f.name.substringBefore('_', "startup")
+            if (uploadPhoto(bytes, type)) {
                 f.delete()
                 ok++
             }

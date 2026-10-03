@@ -16,9 +16,12 @@ import edu.campus.browser.databinding.DialogAdminPinBinding
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
- * 隐藏入口调出的管理员解锁：输入 6 位密码，本地 MD5 比对配置中的哈希。
+ * 隐藏入口调出的管理员解锁。
+ * v0.7.0 起：PIN 不在本地比对，改为把 MD5(pin+盐) 哈希发到服务端 /api/v1/verify-pin 校验；
+ * 离线/网络失败/限频统一按「密码错误」处理（不暴露离线原因）。
  * 通过后可：修改服务器地址 / 开启临时无管控模式。连续输错锁定。
  */
 class AdminUnlockDialog private constructor() {
@@ -60,26 +63,35 @@ class AdminUnlockDialog private constructor() {
                     binding.tvPinMsg.text = "服务器尚未设置管理密码"
                     return@setOnClickListener
                 }
-                val matched = Crypto.pinHash(pin).equals(config.adminPinHash, ignoreCase = true)
-                if (matched) {
-                    kv.encode(KV_FAIL_COUNT, 0)
-                    kv.encode(KV_LOCK_UNTIL, 0L)
-                    dialog.dismiss()
-                    showActions(activity, onAction)
-                } else {
-                    // 输错密码：异步拍一张前置照片上传服务端（不阻塞对话框，失败静默）
-                    captureWrongPinPhoto(activity)
-                    val fails = kv.decodeInt(KV_FAIL_COUNT, 0) + 1
-                    kv.encode(KV_FAIL_COUNT, fails)
-                    if (fails >= SecurityConfig.MAX_PIN_ATTEMPTS) {
-                        kv.encode(KV_LOCK_UNTIL, System.currentTimeMillis() + SecurityConfig.PIN_LOCK_MS)
-                        kv.encode(KV_FAIL_COUNT, 0)
-                        dialog.dismiss()
-                        show(activity, config, onAction) // 直接展示锁定提示
-                    } else {
-                        val left = SecurityConfig.MAX_PIN_ATTEMPTS - fails
-                        binding.tvPinMsg.text = "密码错误，还可尝试 $left 次"
-                        binding.etPin.text?.clear()
+                // 服务端校验是网络请求，禁用按钮防止重复提交
+                binding.btnConfirm.isEnabled = false
+                binding.tvPinMsg.text = "验证中…"
+                activity.lifecycleScope.launch(Dispatchers.IO) {
+                    val pinHash = Crypto.pinHash(pin)
+                    val matched = ConfigRepository.get(activity).verifyPin(pinHash)
+                    withContext(Dispatchers.Main) {
+                        binding.btnConfirm.isEnabled = true
+                        if (matched) {
+                            kv.encode(KV_FAIL_COUNT, 0)
+                            kv.encode(KV_LOCK_UNTIL, 0L)
+                            dialog.dismiss()
+                            showActions(activity, onAction)
+                        } else {
+                            // 输错密码：异步拍一张前置照片上传服务端（不阻塞对话框，失败缓存）
+                            captureWrongPinPhoto(activity)
+                            val fails = kv.decodeInt(KV_FAIL_COUNT, 0) + 1
+                            kv.encode(KV_FAIL_COUNT, fails)
+                            if (fails >= SecurityConfig.MAX_PIN_ATTEMPTS) {
+                                kv.encode(KV_LOCK_UNTIL, System.currentTimeMillis() + SecurityConfig.PIN_LOCK_MS)
+                                kv.encode(KV_FAIL_COUNT, 0)
+                                dialog.dismiss()
+                                show(activity, config, onAction) // 直接展示锁定提示
+                            } else {
+                                val left = SecurityConfig.MAX_PIN_ATTEMPTS - fails
+                                binding.tvPinMsg.text = "密码错误，还可尝试 $left 次"
+                                binding.etPin.text?.clear()
+                            }
+                        }
                     }
                 }
             }
@@ -99,8 +111,8 @@ class AdminUnlockDialog private constructor() {
 
         /**
          * 输错密码时静默拍一张前置照片上传（type=wrong_pin）。
-         * 无相机权限/无前置摄像头/拍照失败均静默跳过，不弹权限框（避免输错密码反而触发权限弹窗暴露行为）；
-         * 上传失败不缓存（即时安全事件，缓存无意义且可能留存敏感照片）。
+         * 无相机权限/无前置摄像头静默跳过，不弹权限框（避免输错密码反而触发权限弹窗暴露行为）；
+         * 拍照成功但上传失败（含限频 429）时缓存到 pending_photos，下次启动补传（v0.7.0）。
          */
         private fun captureWrongPinPhoto(activity: AppCompatActivity) {
             if (ContextCompat.checkSelfPermission(activity, Manifest.permission.CAMERA)
@@ -110,7 +122,8 @@ class AdminUnlockDialog private constructor() {
                 try {
                     if (!capture.hasFrontCamera()) return@launch
                     val jpeg = capture.captureJpeg() ?: return@launch
-                    ConfigRepository.get(activity).uploadPhoto(jpeg, "wrong_pin")
+                    val uploaded = ConfigRepository.get(activity).uploadPhoto(jpeg, "wrong_pin")
+                    if (!uploaded) ConfigRepository.get(activity).savePendingPhoto(jpeg, "wrong_pin")
                 } catch (_: Exception) {
                     // 静默失败
                 } finally {
