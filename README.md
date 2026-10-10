@@ -1,95 +1,112 @@
-# 校园浏览器 · APP 端（Campus Browser APP）
+# 校园浏览器 · APP 端
 
-Android 原生 Kotlin，基于系统 WebView 的轻量受管浏览器：服务端统一下发配置，平板端按白/黑名单管控访问，适用于校园信息门户、电子班牌、教室平板统一上网管控。
+**受管 WebView 壳**：服务端下发 RSA 签名配置，平板按白/黑名单强制跳转管控。面向教室平板、电子班牌的统一上网管理。
 
-当前版本：**v0.8.0**（versionCode 10，书签桌面快捷方式 + 内置 HTML 页）
+![version](https://img.shields.io/badge/version-0.8.1-1b7ae0)
+![android](https://img.shields.io/badge/Android-7.0%2B%20(API%2024)-3ddc84)
+![license](https://img.shields.io/badge/license-GPL--3.0-12b3a8)
+
+| 项 | 值 |
+| --- | --- |
+| 包名 / 版本 | `edu.campus.browser` · versionCode 11 · versionName 0.8.1 |
+| 运行环境 | Android 7.0+（minSdk 24）/ targetSdk 34 / 系统 WebView |
+| 体积 | release 约 3.72 MB（R8 混淆 + 资源压缩，仅 arm64-v8a / armeabi-v7a） |
+| 签名 | debug keystore（SHA-256 `9E:18:19:8C:...:97:B4`），**可覆盖安装旧版** |
+| **服务端** | 需 v0.8.0+（新增字段全部可选，旧服务端仍可用） |
+
+---
+
+## 工作流
+
+```mermaid
+flowchart TD
+  A["首次启动"] --> B["填写服务器地址 / 扫码"]
+  B --> C["注册 + 拉配置 + RSA 验签"]
+  C -->|失败| B
+  C -->|成功| D["写入 MMKV 缓存"]
+  D --> E{"require_startup_photo?"}
+  E -->|是| F["申请相机 → 前置静默拍照上传"]
+  E -->|否| G["进入浏览器"]
+  F --> G
+  G --> H["WebView 加载首页"]
+  H --> I{"每次跳转"}
+  I -->|命中白名单| J["加载"]
+  I -->|拒绝| K["本地拦截提示页"]
+  G --> L["按间隔轮询新配置"]
+  L -->|验签失败/网络异常| M["继续用缓存，绝不覆盖"]
+```
 
 ## 功能
 
-- 首次启动必须填写服务器地址并成功拉取配置，否则无法进入
-- 按地址前缀自动使用 `http://` 或 `https://`（已全局放行明文流量）
-- 启动直达配置首页，WebView 层强制白/黑名单拦截，禁长按菜单、禁下载
-- **书签可添加到安卓桌面（v0.8.0）**：工具栏「书签」→ 长按条目 →「添加到桌面」，桌面图标点一下即拉起本 APP 并直接打开该书签（仍受白名单管控）；API 26+ 走 `ShortcutManager.requestPinShortcut`，老 launcher 回退 `INSTALL_SHORTCUT` 广播，各 ROM 支持不一会有对应提示
-- **支持服务端内置 HTML 页（v0.8.0）**：服务端在后台编辑的静态页（`http://服务器IP:端口/h/页面片段`）在书签列表中带 🏫 标记，配合白名单自动放行可直接打开、也可钉到桌面
-- **规则匹配加固**：匹配只看域名/端口/路径、不区分 http/https；支持 `host:8080` 端口精确匹配；修复书签带尾斜杠不生效问题
-- **启动权限自检与前置拍照**：启动先拉最新配置，服务端开启「要求启动拍照」时未授权相机权限无法进入；授权后 CameraX 前置静默拍一张上传，无前置摄像头则上报跳过；**从桌面快捷方式启动时跳过拍照门控**（用户点图标即是想立刻看页面）
-- **拍照稳定性加固**：全局拍照互斥（避免相机被并发占用）、超时 15 秒、拍照或上传失败自动缓存，下次启动补传
-- **PIN 服务端校验**：管理密码不再本地比对，改为把 MD5 哈希发到服务端 `/api/v1/verify-pin` 校验；离线/网络失败统一提示「密码错误」；服务端下发的配置已不含 PIN 哈希（v0.7.1）
-- **输错密码拍照告警**：管理员密码输错一次即静默拍一张前置照片上传服务端，后台设备列表标红提醒
-- 顶部工具栏（优化图标间距）：后退 / 前进 / 地址栏（受管只读）/ **扫码** / 刷新 / 快捷书签 / **应用** / 回首页，带加载进度条
-- **扫码**：主界面工具栏与设置页均可扫码，支持网址二维码与 `app://包名` 应用二维码
-- **唤醒其他应用**：WebView 与扫码中的自定义 scheme 按服务端白名单拉起，工具栏「应用」按钮快速启动
-- **截屏限制**：服务端开启后全局禁止截屏/录屏（FLAG_SECURE），最近任务缩略图遮蔽
-- **隐藏入口远程开关**：服务端可远程彻底关闭 Logo 连点入口，关闭后点击静默无效、无提示，仅服务器可重开
-- **UA 标识**：访问服务端统一使用 `CampusBrowser/版本 OkHttp/4.12`，WebView 访问互联网保持浏览器 UA；服务端可开启校验
-- 定时轮询新配置，RSA 验签；网络失败或配置异常时继续使用本地缓存
-- 隐藏管理员入口：工具栏毕业帽 Logo 3 秒内连点 5 次，输入密码后可修改服务器地址、开启临时无管控模式（重启自动恢复）；页面跳转带淡入淡出动画
-- PIN 连续输错 5 次锁定 5 分钟
-- 设备注册/心跳自动上报当前 IPv4 与 APP 版本
+| 模块 | 能力 |
+| --- | --- |
+| **受管浏览** | WebView 强制白/黑名单（域名 / `host:端口` / 路径前缀，不看协议）；禁长按菜单、禁下载、禁缩放，地址栏受管时只读 |
+| **快捷书签** | 工具栏一键打开；白名单模式下自动放行；**长按条目可「添加到桌面」**，桌面图标点一下直接进该书签页 |
+| **桌面快捷方式** | Android 8+ 用 `ShortcutManager.requestPinShortcut`，老桌面回退 `INSTALL_SHORTCUT` 广播；各 ROM 支持不一会有提示；从快捷方式启动跳过拍照门控 |
+| **内置 HTML 页** | 服务端托管页 `/h/xxx` 在书签列表带 🏫 标记，可打开、可钉桌面 |
+| **扫码 / 唤醒应用** | ZXing 扫码（网址或 `app://包名`）；WebView 自定义 scheme 按服务端白名单拉起，工具栏「应用」按钮快速启动 |
+| **启动拍照** | 服务端开关控制；无前置摄像头则上报跳过；拍照/上传失败缓存，下次启动补传 |
+| **输错拍照** | 管理密码连续输错静默拍前置照片上传服务端，后台标红告警 |
+| **截屏限制** | `FLAG_SECURE` 全局禁止截屏/录屏（服务端开关） |
+| **隐藏入口** | 工具栏 Logo 3 秒内连点 5 次；服务端可远程彻底关闭（关闭后点击静默无效） |
+| **轮询更新** | 按服务端间隔拉取，RSA 验签失败或异常时**不覆盖**本地缓存 |
 
-## 界面与图标
+## 管理密码与解锁
 
-- Material Design 3：教育蓝青品牌色、胶囊按钮、圆角卡片、顶部进度条
-- 首启页横屏左右分栏：左侧品牌渐变面板，右侧连接表单卡片
-- 启动图标为自适应图标（含 Android 13+ 单色主题图标）：蓝青渐变底 + 白色毕业帽与地球
+- 隐藏入口输入：**6 位数字 PIN**（`MD5(pin+盐)` 发到服务端 `/api/v1/verify-pin` 校验，离线统一提示「密码错误」）
+- 通过后可：修改服务器地址 / 开启临时无管控模式（重启自动恢复）
+- 连续输错 5 次锁定 5 分钟
 
 ## 构建
 
-用 Android Studio（Hedgehog 或更新）打开本目录，等待 Gradle 同步后运行到平板；命令行：
-
 ```bash
-./gradlew assembleDebug
-# 产物：app/build/outputs/apk/debug/app-debug.apk
+./gradlew assembleDebug        # 调试包
+./gradlew assembleRelease      # 需要 app/keystore.properties + app/keystore/（均不入库）
 ```
 
-- minSdk 24（Android 7.0）/ targetSdk 34 / Kotlin 1.9 / Gradle 8.9 / AGP 8.5（需 JDK 17）
+`local.properties` 需写 `sdk.dir=<Android SDK 路径>`。工具链：JDK 17 + Gradle 8.9 + AGP 8.5。
 
-## 部署前必做：配置签名公钥
+## 部署前必做：填入服务器公钥
 
-服务端初始化后，在 Web 后台复制签名公钥 PEM，粘贴到：
+后台「系统设置 → 配置签名公钥」复制 PEM，粘贴到 `app/src/main/java/edu/campus/browser/SecurityConfig.kt` 的 `SERVER_PUBLIC_KEY_PEM` 后重新打包。
+**留空则跳过验签（仅调试用）**；同文件 `PIN_SALT` 必须与服务端 `Services/Security.cs` 一致。
 
-```
-app/src/main/java/edu/campus/browser/SecurityConfig.kt
-```
+---
 
-将 `SERVER_PUBLIC_KEY_PEM` 填为公钥内容再打包。留空时 APP 不验签（仅可用于调试）。
-同文件的 `PIN_SALT` 必须与服务端 `Services/Security.cs` 中的盐值一致。
-
-## 主要源码
+## 源码
 
 ```
 app/src/main/java/edu/campus/browser/
-├── App.kt                      # MMKV 初始化
-├── SecurityConfig.kt           # 公钥、PIN 盐、锁定策略
-├── crypto/Crypto.kt            # RSA 验签、PIN 哈希
-├── capture/FrontCameraCapture.kt # CameraX 前置静默拍照
-├── config/AppConfig.kt         # 配置模型（含 hiddenEntry/blockScreenshot/allowedApps/requireStartupPhoto/htmlPages）
-├── config/ConfigRepository.kt  # 注册/拉取/验签/缓存/轮询/IP/照片上传/verifyPin/UA拦截器
-├── net/UrlRuleMatcher.kt       # 白/黑名单匹配（域名/端口/路径，不区分协议）
-├── scan/QrScanner.kt           # ZXing 扫码封装
-├── applaunch/AppLauncher.kt    # 白名单应用拉起
-├── applaunch/BookmarkShortcut.kt       # 书签钉到桌面（requestPinShortcut + 广播兜底）
-├── applaunch/ShortcutResultReceiver.kt # 钉选结果回调提示
-├── ui/PermissionManager.kt     # 启动权限自检与批量申请
-├── ui/setup/SetupActivity.kt   # 首启强制连接服务器
+├── App.kt                         Application：MMKV 初始化 + 崩溃捕获
+├── SecurityConfig.kt              公钥、PIN 盐、锁定策略
+├── crypto/Crypto.kt               RSA 验签、PIN 哈希
+├── capture/FrontCameraCapture.kt  CameraX 前置静默拍照
+├── config/AppConfig.kt            配置模型（org.json 解析）
+├── config/ConfigRepository.kt     注册/拉取/验签/缓存/轮询/心跳/照片/verify-pin
+├── net/UrlRuleMatcher.kt          白/黑名单匹配
+├── scan/QrScanner.kt              ZXing 扫码封装
+├── applaunch/AppLauncher.kt       白名单应用拉起
+├── applaunch/BookmarkShortcut.kt  书签钉到桌面
+├── applaunch/ShortcutResultReceiver.kt
+├── ui/PermissionManager.kt        权限自检与批量申请
+├── ui/setup/SetupActivity.kt      首启连接服务器
 └── ui/main/
-    ├── MainActivity.kt         # WebView 主界面、启动门控、轮询、隐藏入口、扫码/应用/书签按钮
-    ├── ManagedWebViewClient.kt # 跳转拦截与 scheme 处理
-    └── AdminUnlockDialog.kt    # 密码服务端校验解锁（输错触发拍照上传）
+    ├── MainActivity.kt            WebView 主界面、启动门控、轮询、隐藏入口
+    ├── ManagedWebViewClient.kt    跳转拦截与 scheme 处理
+    └── AdminUnlockDialog.kt       管理密码解锁（输错触发拍照）
 ```
 
-## 开源依赖
+## 依赖
 
 | 库 | 用途 |
 | --- | --- |
-| Material Components for Android 1.12 | Material 3 主题与控件 |
+| Material Components 1.12 | M3 主题与控件 |
 | SwipeRefreshLayout 1.1.0 | 下拉刷新 |
 | ZXing Android Embedded 4.3.0 | 二维码扫码 |
-| CameraX 1.3.4 | 前置摄像头静默拍照 |
-| OkHttp 4.12 | 网络请求 |
-| MMKV 1.3.9 | 配置本地缓存（腾讯，基于 mmap） |
-| AndroidX appcompat / constraintlayout / lifecycle | 基础组件 |
+| CameraX 1.3.4 | 前置静默拍照 |
+| OkHttp 4.12 / MMKV 1.3.9 | 网络 / 本地缓存 |
+| AndroidX appcompat · constraintlayout · lifecycle | 基础组件 |
 
-## 开源协议
+## 协议
 
 GPL-3.0
