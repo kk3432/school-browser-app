@@ -15,6 +15,16 @@ data class AllowedApp(
 )
 
 /**
+ * 服务端内置 HTML 页（v0.8.0，需求2）。
+ * 配置里只带 slug/title 元数据；页面正文由服务端在 http://<服务器>/h/<slug> 提供，
+ * APP 侧只需把该地址当普通书签打开。字段保留是为了后台「内置页面」列表与后续扩展。
+ */
+data class HtmlPage(
+    val slug: String,
+    val title: String
+)
+
+/**
  * 服务端下发的配置文件，字段名与 JSON 完全对应。
  */
 data class AppConfig(
@@ -31,7 +41,9 @@ data class AppConfig(
     val hiddenEntryEnabled: Boolean,
     val blockScreenshot: Boolean,
     val requireStartupPhoto: Boolean,
-    val allowedApps: List<AllowedApp>
+    val allowedApps: List<AllowedApp>,
+    /** 服务端内置 HTML 页（v0.8.0）；地址 = 服务器地址 + /h/ + slug。 */
+    val htmlPages: List<HtmlPage> = emptyList()
 ) {
     companion object {
         fun parse(json: String): AppConfig {
@@ -58,6 +70,13 @@ data class AppConfig(
                     )
                 }.filter { it.packageName.isNotBlank() }
             } else emptyList()
+            val htmlArray = o.optJSONArray("html_pages")
+            val htmlPages = if (htmlArray != null) {
+                (0 until htmlArray.length()).map {
+                    val h = htmlArray.getJSONObject(it)
+                    HtmlPage(h.optString("slug", ""), h.optString("title", ""))
+                }.filter { it.slug.isNotBlank() }
+            } else emptyList()
             return AppConfig(
                 schemaVersion = o.optInt("schema_version", 1),
                 version = o.optString("version", ""),
@@ -73,7 +92,8 @@ data class AppConfig(
                 hiddenEntryEnabled = o.optBoolean("hidden_entry_enabled", true),
                 blockScreenshot = o.optBoolean("block_screenshot", true),
                 requireStartupPhoto = o.optBoolean("require_startup_photo", false),
-                allowedApps = allowedApps
+                allowedApps = allowedApps,
+                htmlPages = htmlPages
             )
         }
     }

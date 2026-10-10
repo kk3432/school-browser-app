@@ -2,15 +2,17 @@
 
 Android 原生 Kotlin，基于系统 WebView 的轻量受管浏览器：服务端统一下发配置，平板端按白/黑名单管控访问，适用于校园信息门户、电子班牌、教室平板统一上网管控。
 
-当前版本：**v0.7.1**（versionCode 9，安全加固版）
+当前版本：**v0.8.0**（versionCode 10，书签桌面快捷方式 + 内置 HTML 页）
 
 ## 功能
 
 - 首次启动必须填写服务器地址并成功拉取配置，否则无法进入
 - 按地址前缀自动使用 `http://` 或 `https://`（已全局放行明文流量）
 - 启动直达配置首页，WebView 层强制白/黑名单拦截，禁长按菜单、禁下载
+- **书签可添加到安卓桌面（v0.8.0）**：工具栏「书签」→ 长按条目 →「添加到桌面」，桌面图标点一下即拉起本 APP 并直接打开该书签（仍受白名单管控）；API 26+ 走 `ShortcutManager.requestPinShortcut`，老 launcher 回退 `INSTALL_SHORTCUT` 广播，各 ROM 支持不一会有对应提示
+- **支持服务端内置 HTML 页（v0.8.0）**：服务端在后台编辑的静态页（`http://服务器IP:端口/h/页面片段`）在书签列表中带 🏫 标记，配合白名单自动放行可直接打开、也可钉到桌面
 - **规则匹配加固**：匹配只看域名/端口/路径、不区分 http/https；支持 `host:8080` 端口精确匹配；修复书签带尾斜杠不生效问题
-- **启动权限自检与前置拍照**：启动先拉最新配置，服务端开启「要求启动拍照」时未授权相机权限无法进入；授权后 CameraX 前置静默拍一张上传，无前置摄像头则上报跳过
+- **启动权限自检与前置拍照**：启动先拉最新配置，服务端开启「要求启动拍照」时未授权相机权限无法进入；授权后 CameraX 前置静默拍一张上传，无前置摄像头则上报跳过；**从桌面快捷方式启动时跳过拍照门控**（用户点图标即是想立刻看页面）
 - **拍照稳定性加固**：全局拍照互斥（避免相机被并发占用）、超时 15 秒、拍照或上传失败自动缓存，下次启动补传
 - **PIN 服务端校验**：管理密码不再本地比对，改为把 MD5 哈希发到服务端 `/api/v1/verify-pin` 校验；离线/网络失败统一提示「密码错误」；服务端下发的配置已不含 PIN 哈希（v0.7.1）
 - **输错密码拍照告警**：管理员密码输错一次即静默拍一张前置照片上传服务端，后台设备列表标红提醒
@@ -61,15 +63,17 @@ app/src/main/java/edu/campus/browser/
 ├── SecurityConfig.kt           # 公钥、PIN 盐、锁定策略
 ├── crypto/Crypto.kt            # RSA 验签、PIN 哈希
 ├── capture/FrontCameraCapture.kt # CameraX 前置静默拍照
-├── config/AppConfig.kt         # 配置模型（含 hiddenEntry/blockScreenshot/allowedApps/requireStartupPhoto）
+├── config/AppConfig.kt         # 配置模型（含 hiddenEntry/blockScreenshot/allowedApps/requireStartupPhoto/htmlPages）
 ├── config/ConfigRepository.kt  # 注册/拉取/验签/缓存/轮询/IP/照片上传/verifyPin/UA拦截器
 ├── net/UrlRuleMatcher.kt       # 白/黑名单匹配（域名/端口/路径，不区分协议）
 ├── scan/QrScanner.kt           # ZXing 扫码封装
 ├── applaunch/AppLauncher.kt    # 白名单应用拉起
+├── applaunch/BookmarkShortcut.kt       # 书签钉到桌面（requestPinShortcut + 广播兜底）
+├── applaunch/ShortcutResultReceiver.kt # 钉选结果回调提示
 ├── ui/PermissionManager.kt     # 启动权限自检与批量申请
 ├── ui/setup/SetupActivity.kt   # 首启强制连接服务器
 └── ui/main/
-    ├── MainActivity.kt         # WebView 主界面、启动门控、轮询、隐藏入口、扫码/应用按钮
+    ├── MainActivity.kt         # WebView 主界面、启动门控、轮询、隐藏入口、扫码/应用/书签按钮
     ├── ManagedWebViewClient.kt # 跳转拦截与 scheme 处理
     └── AdminUnlockDialog.kt    # 密码服务端校验解锁（输错触发拍照上传）
 ```

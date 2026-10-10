@@ -18,6 +18,7 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import edu.campus.browser.applaunch.AppLauncher
+import edu.campus.browser.applaunch.BookmarkShortcut
 import edu.campus.browser.applaunch.LaunchResult
 import edu.campus.browser.capture.FrontCameraCapture
 import edu.campus.browser.config.AppConfig
@@ -46,12 +47,17 @@ class MainActivity : AppCompatActivity() {
     private var config: AppConfig? = null
     private var pollJob: Job? = null
 
+    /** 桌面快捷方式带进来的URL（v0.8.0）：有缓存配置时立即打开，无配置时等启动门控完成后打开。 */
+    private var pendingShortcutUrl: String? = null
+
     private var unlockTaps = 0
     private var lastTapAt = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         repo = ConfigRepository.get(this)
+        // v0.8.0：桌面快捷方式启动时先记下目标网址（未进入浏览器前不能直接 loadUrl）
+        pendingShortcutUrl = BookmarkShortcut.urlFromIntent(intent)
         config = repo.getCachedConfig()
         if (config == null) {
             // 首次启动且没有任何缓存配置：强制进入设置页，无法进入浏览器
@@ -96,8 +102,29 @@ class MainActivity : AppCompatActivity() {
                 applyAddressBarMode()
                 applyScreenshotPolicy()
             }
-            runStartupGate()
+            // 桌面快捷方式（v0.8.0）：用户点图标就是要立刻看那个网页，跳过启动拍照门控直接进浏览器
+            if (pendingShortcutUrl != null) {
+                Toast.makeText(this@MainActivity, "正在打开桌面快捷方式", Toast.LENGTH_SHORT).show()
+                enterBrowser()
+            } else {
+                runStartupGate()
+            }
         }
+    }
+
+    /**
+     * 桌面快捷方式复用已存在的实例时（launchMode=singleTask）走这里。
+     * 已在浏览器中就直接跳转（仍过白名单），否则留给正常启动流程处理。
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val url = BookmarkShortcut.urlFromIntent(intent) ?: return
+        if (config == null) {
+            pendingShortcutUrl = url
+            return
+        }
+        navigateTo(url)
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -231,12 +258,50 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "服务器未配置快捷书签", Toast.LENGTH_SHORT).show()
             return
         }
-        val titles = bms.map { it.title.ifBlank { it.url } }.toTypedArray()
-        MaterialAlertDialogBuilder(this)
-            .setTitle("快捷书签")
+        val titles = bms.map { b ->
+            val icon = if (isCampusPage(b.url)) "🏫 " else ""
+            "$icon${b.title.ifBlank { b.url }}"
+        }.toTypedArray()
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle("快捷书签（长按条目可添加到桌面）")
             .setItems(titles) { _, which -> navigateTo(bms[which].url) }
             .setNegativeButton("关闭", null)
+            .create()
+        // 长按列表项 → 添加到桌面（v0.8.0，需求3）
+        dialog.setOnShowListener {
+            val list = dialog.listView
+            list.setOnItemLongClickListener { _, _, position, _ ->
+                showBookmarkActions(bms[position])
+                true
+            }
+        }
+        dialog.show()
+    }
+
+    /** 判断是否服务端内置 HTML 页（/h/xxx），用于在书签列表里做标记。 */
+    private fun isCampusPage(url: String): Boolean = url.contains("/h/")
+
+    /** 书签长按菜单：打开 / 添加到桌面。 */
+    private fun showBookmarkActions(bookmark: edu.campus.browser.config.Bookmark) {
+        val label = bookmark.title.ifBlank { bookmark.url }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(label)
+            .setMessage(bookmark.url)
+            .setItems(arrayOf("打开", "添加到桌面")) { _, which ->
+                when (which) {
+                    0 -> navigateTo(bookmark.url)
+                    1 -> addBookmarkToHome(bookmark)
+                }
+            }
+            .setNegativeButton("取消", null)
             .show()
+    }
+
+    /** 把书签钉到桌面（v0.8.0）：成功与否都用 Toast 提示，不同 ROM 行为差异较大。 */
+    private fun addBookmarkToHome(bookmark: edu.campus.browser.config.Bookmark) {
+        BookmarkShortcut.pin(this, bookmark.title, bookmark.url) { _, message ->
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+        }
     }
 
     // ---------- 扫码 ----------
@@ -487,8 +552,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun enterBrowser() {
         val cfg = config ?: return
+        // 桌面快捷方式优先（v0.8.0）：点图标就是要打开那个页面
+        val shortcut = pendingShortcutUrl
+        pendingShortcutUrl = null
         // loadUrl 由宿主发起时不触发 shouldOverrideUrlLoading，首页需主动校验一次
-        navigateTo(cfg.homeUrl)
+        navigateTo(shortcut ?: cfg.homeUrl)
         startPolling()
     }
 

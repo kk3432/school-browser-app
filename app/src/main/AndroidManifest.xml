@@ -6,6 +6,15 @@
     <!-- 扫码（相机不强制要求，无相机设备上不影响安装） -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- v0.8.0：老版本系统上通过 INSTALL_SHORTCUT 广播把书签钉到桌面（部分 ROM 仍需声明） -->
+    <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />
+    <!-- Android 11+ 包可见性：钉选快捷方式需要能查询到桌面（launcher）应用 -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
+    </queries>
 
     <!-- Android 11+ 包可见性：允许查询所有带启动器图标的应用（唤醒白名单 APP 时解析用） -->
     <queries>
@@ -36,7 +45,17 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!--
+              v0.8.0 桌面快捷方式说明：快捷方式 Intent 用显式组件（setClass）拉起 MainActivity，
+              并携带 bookmark_url，因此这里【故意不加】http/https 的 ACTION_VIEW intent-filter。
+              加上会让本 APP 被系统当成“可打开网页的浏览器”，用户点任意链接都可能跳到这里。
+            -->
         </activity>
+
+        <!-- v0.8.0：钉选快捷方式的结果回调（部分 launcher 不回传，仅用于提示） -->
+        <receiver
+            android:name=".applaunch.ShortcutResultReceiver"
+            android:exported="false" />
 
         <activity
             android:name=".ui.setup.SetupActivity"

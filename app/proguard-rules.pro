@@ -21,6 +21,9 @@
 -keep class edu.campus.browser.config.** { *; }
 -keep class edu.campus.browser.net.** { *; }
 
+# ===== 桌面快捷方式（v0.8.0）：Receiver 由系统按清单反射实例化，不能被混淆/裁剪 =====
+-keep class edu.campus.browser.applaunch.** { *; }
+
 # ===== 保留注解与枚举 =====
 -keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
 -keepclassmembers enum * { *; }
