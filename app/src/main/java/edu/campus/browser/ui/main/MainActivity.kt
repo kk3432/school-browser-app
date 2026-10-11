@@ -3,11 +3,13 @@ package edu.campus.browser.ui.main
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.widget.Toast
@@ -52,6 +54,9 @@ class MainActivity : AppCompatActivity() {
 
     private var unlockTaps = 0
     private var lastTapAt = 0L
+
+    /** 中转 WebView 的延迟销毁队列（见 onCreateWindow）。 */
+    private val probeReaper = android.os.Handler(android.os.Looper.getMainLooper())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -136,11 +141,29 @@ class MainActivity : AppCompatActivity() {
             databaseEnabled = true
             cacheMode = WebSettings.LOAD_DEFAULT
             mediaPlaybackRequiresUserGesture = false
-            setSupportZoom(false)
-            builtInZoomControls = false
-            displayZoomControls = false
             allowFileAccess = false
             allowContentAccess = false
+
+            // 阶段1：对齐系统浏览器的渲染基线（原先 setSupportZoom(false) 是比例异常的根因之一）。
+            // useWideViewPort + loadWithOverviewMode：无 viewport meta 的页面按整页缩放适配屏幕，
+            // 而不是按默认布局宽度横溢出被裁切。
+            useWideViewPort = true
+            loadWithOverviewMode = true
+            layoutAlgorithm = WebSettings.LayoutAlgorithm.TEXT_AUTOSIZING
+            textZoom = 100
+            // 允许双指缩放，但不显示系统缩放按钮（保持纯净界面）
+            setSupportZoom(true)
+            builtInZoomControls = true
+            displayZoomControls = false
+            // 页面 window.open / target=_blank 交给 onCreateWindow 同窗口打开，否则点击无反应
+            setSupportMultipleWindows(true)
+            javaScriptCanOpenWindowsAutomatically = true
+        }
+
+        // 渲染进程优先级：避免 WebView 在后台/多任务时被降级，导致重定向链上的 JS 执行被拖慢
+        // （API 26 起才有该接口，minSdk 24 需判断）
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            web.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false)
         }
 
         web.webViewClient = ManagedWebViewClient(
@@ -150,6 +173,7 @@ class MainActivity : AppCompatActivity() {
             onPageStarted = { url ->
                 runOnUiThread {
                     binding.errorOverlay.isVisible = false
+                    ViewportInjector.reset()
                     updateNavState(url)
                 }
             },
@@ -158,6 +182,8 @@ class MainActivity : AppCompatActivity() {
                     binding.swipeRefresh.isRefreshing = false
                     binding.progress.isVisible = false
                     updateNavState(url)
+                    // 阶段2：仅对没有 viewport meta 的页面补 width=device-width
+                    ViewportInjector.injectIfMissing(binding.webView, url)
                 }
             }
         )
@@ -166,6 +192,33 @@ class MainActivity : AppCompatActivity() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 binding.progress.progress = newProgress
                 binding.progress.isVisible = newProgress in 1..99
+            }
+
+            /** target=_blank / window.open：在当前 WebView 直接打开，仍走白名单（loadUrl 由宿主发起）。 */
+            override fun onCreateWindow(
+                view: WebView?,
+                isDialog: Boolean,
+                isUserGesture: Boolean,
+                resultMsg: android.os.Message?
+            ): Boolean {
+                val parent = view ?: return false
+                val probe = WebView(parent.context)
+                probe.webViewClient = object : android.webkit.WebViewClient() {
+                    override fun shouldOverrideUrlLoading(
+                        v: WebView?,
+                        request: WebResourceRequest?
+                    ): Boolean {
+                        val target = request?.url?.toString() ?: return true
+                        // 先把弹窗发起的目标交给主 WebView（走白名单），再延迟销毁这个中转 WebView，
+                        // 避免在导航回调里同步 destroy 引起 WebView 内部状态异常。
+                        navigateTo(target)
+                        v?.let { disposeProbe(it) }
+                        return true
+                    }
+                }
+                (resultMsg?.obj as? WebView.WebViewTransport)?.webView = probe
+                resultMsg?.sendToTarget()
+                return true
             }
         }
 
@@ -204,6 +257,18 @@ class MainActivity : AppCompatActivity() {
                 navigateFromAddressBar()
                 true
             } else false
+        }
+    }
+
+    /**
+     * 销毁 onCreateWindow 用的中转 WebView：
+     * 它只是把 `window.open` 的目标网址转交给主 WebView 的载体，不做渲染，用完即弃。
+     * 延迟到本轮消息循环之后再销毁，避免在 shouldOverrideUrlLoading 回调栈里同步 destroy。
+     */
+    private fun disposeProbe(probe: WebView) {
+        probe.stopLoading()
+        probeReaper.post {
+            runCatching { probe.destroy() }
         }
     }
 
