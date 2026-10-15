@@ -2,17 +2,19 @@
 
 **受管 WebView 壳**：服务端下发 RSA 签名配置，平板按白/黑名单强制跳转管控。面向教室平板、电子班牌的统一上网管理。
 
-![version](https://img.shields.io/badge/version-0.8.1-1b7ae0)
+![version](https://img.shields.io/badge/version-0.8.2-1b7ae0)
 ![android](https://img.shields.io/badge/Android-7.0%2B%20(API%2024)-3ddc84)
 ![license](https://img.shields.io/badge/license-GPL--3.0-12b3a8)
 
 | 项 | 值 |
 | --- | --- |
-| 包名 / 版本 | `edu.campus.browser` · versionCode 11 · versionName 0.8.1 |
+| 包名 / 版本 | `edu.campus.browser` · versionCode 12 · versionName 0.8.2 |
 | 运行环境 | Android 7.0+（minSdk 24）/ targetSdk 34 / 系统 WebView |
 | 体积 | release 约 3.72 MB（R8 混淆 + 资源压缩，仅 arm64-v8a / armeabi-v7a） |
 | 签名 | debug keystore（SHA-256 `9E:18:19:8C:...:97:B4`），**可覆盖安装旧版** |
-| **服务端** | 需 v0.8.0+（新增字段全部可选，旧服务端仍可用） |
+| **服务端** | v0.8.0+ 全部功能可用（新字段一律可选）；**服务端 v0.8.3 起强制校验 UA**，因此要求 APP ≥ v0.7.0 —— APP 的所有请求都自带 `User-Agent: CampusBrowser/{版本} OkHttp/4.12`，`/api/v1/public-key` 也一样 |
+
+> 版本对应：**v0.8.3 只改服务端，APP 最新版仍是 v0.8.2**（versionCode 12），无需重新出包。
 
 ---
 
