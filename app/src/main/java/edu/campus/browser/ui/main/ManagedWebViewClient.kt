@@ -1,9 +1,9 @@
 package edu.campus.browser.ui.main
 
 import android.graphics.Bitmap
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
@@ -21,12 +21,27 @@ class ManagedWebViewClient(
     private val onBlocked: (url: String) -> Unit,
     private val onMainFrameError: () -> Unit,
     private val onPageStarted: (url: String) -> Unit,
-    private val onPageFinished: (url: String) -> Unit
+    private val onPageFinished: (url: String) -> Unit,
+    private val onRenderGone: () -> Unit
 ) : WebViewClient() {
 
+    // v0.8.2：规则匹配器按配置实例缓存，配置刷新（config 被替换）时才重建，
+    // 避免每次页面跳转都重新解析全部白/黑名单规则与书签。
+    private var matcherConfig: AppConfig? = null
+    private var matcher: UrlRuleMatcher? = null
+
+    private fun rulesFor(cfg: AppConfig): UrlRuleMatcher {
+        if (matcher == null || matcherConfig !== cfg) {
+            matcher = UrlRuleMatcher(cfg)
+            matcherConfig = cfg
+        }
+        return matcher!!
+    }
+
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-        val url = request.url?.toString() ?: return true
-        val scheme = request.url?.scheme ?: return true
+        val uri = request.url ?: return true
+        val url = uri.toString()
+        val scheme = uri.scheme ?: return true
 
         // 非 http/https：about/data 内部协议放行；其余自定义 scheme 仅允许拉起白名单内应用
         if (scheme != "http" && scheme != "https") {
@@ -47,7 +62,7 @@ class ManagedWebViewClient(
         if (AdminSession.bypassRules) return false
 
         val config = configProvider() ?: return true
-        val allowed = UrlRuleMatcher(config).isAllowed(url)
+        val allowed = rulesFor(config).isAllowed(url)
         return if (allowed) {
             false
         } else {
@@ -56,12 +71,13 @@ class ManagedWebViewClient(
         }
     }
 
-    override fun shouldInterceptRequest(
-        view: WebView?,
-        request: WebResourceRequest?
-    ): WebResourceResponse? {
-        // M1 只拦截页面跳转；页面内静态资源（CDN 图片/脚本）不拦截，避免误伤。
-        return super.shouldInterceptRequest(view, request)
+    /**
+     * 渲染进程被杀（内存压力下的 OOM）时系统默认只留一个死壳 WebView，表现是“页面点不动”。
+     * v0.8.2：返回 true 接管，由宿主重建页面。
+     */
+    override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
+        onRenderGone()
+        return true
     }
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {

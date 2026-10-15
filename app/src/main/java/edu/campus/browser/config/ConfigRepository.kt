@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
 import android.os.Build
+import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
 import edu.campus.browser.SecurityConfig
@@ -32,6 +33,10 @@ import java.util.concurrent.TimeUnit
 class ConfigRepository private constructor(private val context: Context) {
 
     private val kv: MMKV = MMKV.mmkvWithID("campus_browser")
+
+    /** v0.8.2：本机 IPv4 短 TTL 缓存（原来每次注册/心跳都遍历网卡与链路地址）。 */
+    private var cachedIp = ""
+    private var cachedIpAt = 0L
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
@@ -67,10 +72,22 @@ class ConfigRepository private constructor(private val context: Context) {
     private fun deviceName(): String = Build.MANUFACTURER + " " + Build.MODEL
 
     /**
-     * 获取当前 IPv4 地址（IP 会随网络变化，每次注册/心跳都重新读取）。
+     * 获取当前 IPv4 地址（IP 会随网络变化，60 秒 TTL 足够）。
      * 优先 ConnectivityManager 的链路地址（API 23+），兜底遍历网卡。
      */
-    private fun getLocalIpAddress(): String = try {
+    private fun getLocalIpAddress(): String {
+        // v0.8.2：加短 TTL 缓存，避免每次注册/心跳都遍历网卡
+        val now = SystemClock.elapsedRealtime()
+        if (cachedIp.isNotEmpty() && now - cachedIpAt < IP_CACHE_TTL_MS) return cachedIp
+        val ip = readLocalIpAddress()
+        if (ip.isNotEmpty()) {
+            cachedIp = ip
+            cachedIpAt = now
+        }
+        return ip
+    }
+
+    private fun readLocalIpAddress(): String = try {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val addr = cm.getLinkProperties(cm.activeNetwork)?.linkAddresses
             ?.map { it.address }
@@ -142,10 +159,13 @@ class ConfigRepository private constructor(private val context: Context) {
             val (json, version, signature) = fetchConfig(baseUrl)
             verifyBody(json, signature)
             val config = parseAndValidate(json)
-            heartbeat(baseUrl, config.version)
             if (version.isNotBlank() && version == getCachedVersion()) {
+                // v0.8.2：版本没变就不发心跳 POST。在线状态由本请求自身维持
+                // （服务端 /api/v1/config 收到 device_id 会 TouchDeviceSeen），
+                // 心跳只在真的拿到新配置、名称/版本/IP 可能变化时才需要。
                 null
             } else {
+                heartbeat(baseUrl, config.version)
                 kv.encode(KEY_CONFIG_JSON, json)
                 kv.encode(KEY_CONFIG_VERSION, version)
                 config
@@ -344,6 +364,9 @@ class ConfigRepository private constructor(private val context: Context) {
         private const val KEY_CONFIG_JSON = "config_json"
         private const val KEY_CONFIG_VERSION = "config_version"
         private const val KEY_BOOTSTRAPPED = "bootstrapped"
+
+        /** 本机 IP 缓存时长（毫秒）。 */
+        private const val IP_CACHE_TTL_MS = 60_000L
 
         @Volatile
         private var instance: ConfigRepository? = null

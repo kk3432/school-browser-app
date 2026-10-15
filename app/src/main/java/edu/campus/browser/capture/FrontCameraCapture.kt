@@ -50,8 +50,12 @@ class FrontCameraCapture(
     suspend fun captureJpeg(timeoutMs: Long = 15000): ByteArray? = try {
         captureMutex.withLock {
             withTimeout(timeoutMs) {
+                // v0.8.2：CameraX 初始化要等 HAL（200-800ms，最坏到数秒），
+                // 原来在主线程 .get() 会卡住 UI；这里在 IO 线程等待，拿到 provider 后再回主线程 bind/拍照。
+                val provider = withContext(Dispatchers.IO) {
+                    ProcessCameraProvider.getInstance(context).get()
+                }
                 withContext(Dispatchers.Main) {
-                    val provider = ProcessCameraProvider.getInstance(context).get()
                     val imageCapture = ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                         .setJpegQuality(85)

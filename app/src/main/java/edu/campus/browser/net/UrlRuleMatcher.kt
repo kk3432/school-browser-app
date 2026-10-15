@@ -53,8 +53,8 @@ class UrlRuleMatcher(private val config: AppConfig) {
     private fun parseRule(rule: String): Rule? {
         if (rule.isEmpty()) return null
         val afterScheme = if (rule.contains("://")) rule.substringAfter("://") else rule
-        // 拆出 host[:port] 与 path
-        val hostPart = afterScheme.substringBefore("/")
+        // 拆出 host[:port] 与 path（host 统一小写，匹配时不再逐条重复降格）
+        val hostPart = afterScheme.substringBefore("/").lowercase()
         val rawPath = if (afterScheme.contains("/")) "/" + afterScheme.substringAfter("/") else null
 
         val (host, port) = splitHostPort(hostPart)
@@ -82,13 +82,13 @@ class UrlRuleMatcher(private val config: AppConfig) {
     }
 
     private fun hostMatches(pattern: String, host: String): Boolean {
-        val p = pattern.lowercase()
+        // v0.8.2：规则 host 在 parseRule 已小写，这里每个 URL 只降格一次（原来每条规则各降两次）
         val h = host.lowercase()
-        return if (p.startsWith("*.")) {
-            val base = p.removePrefix("*.")
+        return if (pattern.startsWith("*.")) {
+            val base = pattern.removePrefix("*.")
             h == base || h.endsWith(".$base")
         } else {
-            h == p
+            h == pattern
         }
     }
 

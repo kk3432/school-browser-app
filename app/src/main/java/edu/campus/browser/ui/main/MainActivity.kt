@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
@@ -52,6 +53,23 @@ class MainActivity : AppCompatActivity() {
     /** 桌面快捷方式带进来的URL（v0.8.0）：有缓存配置时立即打开，无配置时等启动门控完成后打开。 */
     private var pendingShortcutUrl: String? = null
 
+    /** v0.8.2：启动阶段已提前 loadUrl 的地址，进入浏览器时不再重复加载（否则二次刷新闪烁）。 */
+    private var preloadedUrl: String? = null
+
+    // v0.8.2：白/黑名单匹配器按配置实例缓存。原来每次跳转都 new UrlRuleMatcher(config)，
+    // 会重新解析整份规则与书签列表；配置刷新（config 被替换成新实例）时才需要重建。
+    private var matcherCacheConfig: AppConfig? = null
+    private var matcherCache: UrlRuleMatcher? = null
+
+    private fun rulesFor(cfg: AppConfig): UrlRuleMatcher {
+        val cached = matcherCache
+        if (cached != null && matcherCacheConfig === cfg) return cached
+        val built = UrlRuleMatcher(cfg)
+        matcherCacheConfig = cfg
+        matcherCache = built
+        return built
+    }
+
     private var unlockTaps = 0
     private var lastTapAt = 0L
 
@@ -95,10 +113,19 @@ class MainActivity : AppCompatActivity() {
             binding.webView.reload()
         }
 
-        // v0.5.0 启动序列：补传遗留照片 → 先拉一次最新配置（短超时，失败用缓存）→ 按服务端
-        // require_startup_photo 决策权限/拍照 → 最后进入浏览器（拍照与页面加载并行，不阻塞浏览）
+        // v0.8.2 启动序列（原实现把首屏挡在 5 秒配置超时 + 拍照门控之后，冷启动白屏 3-8 秒）：
+        // 1) 立刻用缓存配置加载首页/桌面快捷方式；
+        // 2) 并行在后台补传遗留照片、拉一次最新配置（拉回只做热更新，不重载当前页面）；
+        // 3) 服务端要求启动拍照时照旧执行拍照流程，但不再阻塞页面显示。
+        val entryUrl = pendingShortcutUrl
+        pendingShortcutUrl = null
+        val startUrl = entryUrl ?: config!!.homeUrl
+        preloadedUrl = startUrl
+        // loadUrl 由宿主发起时不触发 shouldOverrideUrlLoading，首页也必须主动过白/黑名单
+        navigateTo(startUrl)
+
         lifecycleScope.launch {
-            withContext(Dispatchers.IO) { repo.flushPendingPhotos() }
+            launch(Dispatchers.IO) { repo.flushPendingPhotos() }
             val fresh = withTimeoutOrNull(STARTUP_CONFIG_TIMEOUT_MS) {
                 withContext(Dispatchers.IO) { repo.refresh() }
             }
@@ -107,8 +134,8 @@ class MainActivity : AppCompatActivity() {
                 applyAddressBarMode()
                 applyScreenshotPolicy()
             }
-            // 桌面快捷方式（v0.8.0）：用户点图标就是要立刻看那个网页，跳过启动拍照门控直接进浏览器
-            if (pendingShortcutUrl != null) {
+            // 桌面快捷方式（v0.8.0）：点图标就是要立刻看那个网页，跳过启动拍照门控
+            if (entryUrl != null) {
                 Toast.makeText(this@MainActivity, "正在打开桌面快捷方式", Toast.LENGTH_SHORT).show()
                 enterBrowser()
             } else {
@@ -185,13 +212,20 @@ class MainActivity : AppCompatActivity() {
                     // 阶段2：仅对没有 viewport meta 的页面补 width=device-width
                     ViewportInjector.injectIfMissing(binding.webView, url)
                 }
-            }
+            },
+            onRenderGone = { runOnUiThread { recoverFromRenderGone() } }
         )
 
         web.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                binding.progress.progress = newProgress
-                binding.progress.isVisible = newProgress in 1..99
+                // v0.8.2：只在值真的变化时写属性，避免每个进度 tick 都触发一次布局
+                if (binding.progress.progress != newProgress) {
+                    binding.progress.progress = newProgress
+                }
+                val visible = newProgress in 1..99
+                if (binding.progress.isVisible != visible) {
+                    binding.progress.isVisible = visible
+                }
             }
 
             /** target=_blank / window.open：在当前 WebView 直接打开，仍走白名单（loadUrl 由宿主发起）。 */
@@ -310,7 +344,7 @@ class MainActivity : AppCompatActivity() {
     /** 统一的导航入口：受管模式下先过白/黑名单。 */
     private fun navigateTo(url: String) {
         val current = config ?: return
-        if (!AdminSession.bypassRules && !UrlRuleMatcher(current).isAllowed(url)) {
+        if (!AdminSession.bypassRules && !rulesFor(current).isAllowed(url)) {
             showBlockedPage(url)
         } else {
             binding.webView.loadUrl(url)
@@ -432,6 +466,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startPolling() {
+        if (pollJob?.isActive == true) return
         val intervalSeconds = (config?.updateIntervalSeconds ?: 300).coerceAtLeast(30)
         pollJob = lifecycleScope.launch {
             while (isActive) {
@@ -514,12 +549,20 @@ class MainActivity : AppCompatActivity() {
               <div class="icon"></div>
               <h2>访问受限</h2>
               <p>该网址不在学校允许访问的范围内。<br>如需访问教学资源，请联系老师加入书签或白名单。</p>
-              <div class="url">$url</div>
+              <div class="url">${escapeHtml(url)}</div>
               <div class="tip">校园浏览器 · 受管模式</div>
             </div></body></html>
         """.trimIndent()
         binding.webView.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
     }
+
+    /** v0.8.2：拦截页里的网址来自用户输入，插入 HTML 前必须转义（防脚本注入）。 */
+    private fun escapeHtml(raw: String): String = raw
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;")
+        .replace("'", "&#39;")
 
     private fun showErrorOverlay() {
         binding.swipeRefresh.isRefreshing = false
@@ -620,9 +663,45 @@ class MainActivity : AppCompatActivity() {
         // 桌面快捷方式优先（v0.8.0）：点图标就是要打开那个页面
         val shortcut = pendingShortcutUrl
         pendingShortcutUrl = null
-        // loadUrl 由宿主发起时不触发 shouldOverrideUrlLoading，首页需主动校验一次
-        navigateTo(shortcut ?: cfg.homeUrl)
+        val target = shortcut ?: cfg.homeUrl
+        // v0.8.2：启动时已提前加载过同一地址，这里不再重复 loadUrl（避免二次刷新闪烁）
+        if (preloadedUrl != target) {
+            navigateTo(target)
+        }
+        preloadedUrl = null
         startPolling()
+    }
+
+    /** 渲染进程被杀（OOM）后的恢复：重建成 Activity，走正常启动序列重新加载页面（v0.8.2）。 */
+    private fun recoverFromRenderGone() {
+        Toast.makeText(this, "页面渲染进程已重启，正在恢复…", Toast.LENGTH_SHORT).show()
+        runCatching {
+            binding.webView.stopLoading()
+            (binding.webView.parent as? ViewGroup)?.removeView(binding.webView)
+            binding.webView.destroy()
+        }
+        recreate()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (config == null) return
+        // v0.8.2：进入后台就停掉配置轮询与 WebView 定时器/JS，回前台再恢复（原来后台仍全速轮询）
+        pollJob?.cancel()
+        runCatching {
+            binding.webView.onPause()
+            binding.webView.pauseTimers()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (config == null) return
+        runCatching {
+            binding.webView.resumeTimers()
+            binding.webView.onResume()
+        }
+        if (pollJob?.isActive != true) startPolling()
     }
 
     override fun onDestroy() {
@@ -630,6 +709,7 @@ class MainActivity : AppCompatActivity() {
         cameraCapture?.close()
         runCatching {
             binding.webView.stopLoading()
+            (binding.webView.parent as? ViewGroup)?.removeView(binding.webView)
             binding.webView.destroy()
         }
         super.onDestroy()
