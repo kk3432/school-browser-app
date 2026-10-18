@@ -6,138 +6,237 @@
     android:background="@color/background"
     android:orientation="vertical">
 
-    <!-- 顶部工具栏 -->
+    <!-- 顶部工具栏：56dp 白底，所有按钮 48dp 触摸区 -->
     <LinearLayout
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="54dp"
+        android:layout_height="@dimen/toolbar_height"
         android:background="@color/toolbar_bg"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="10dp"
-        android:paddingEnd="10dp">
+        android:paddingStart="@dimen/space_2"
+        android:paddingEnd="@dimen/space_2">
 
-        <!-- 品牌 Logo，同时是隐藏管理员入口（连点 5 次） -->
-        <ImageView
+        <!-- 品牌 Logo，同时是隐藏管理员入口（3 秒内连点 5 次） -->
+        <FrameLayout
             android:id="@+id/unlock_hotspot"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:background="@drawable/bg_logo"
+            android:layout_width="@dimen/touch_min"
+            android:layout_height="@dimen/touch_min"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:clickable="true"
-            android:contentDescription="@null"
-            android:padding="8dp"
-            android:src="@drawable/ic_school" />
+            android:contentDescription="@string/cd_logo"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="@dimen/unlock_visual"
+                android:layout_height="@dimen/unlock_visual"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_logo"
+                android:contentDescription="@null"
+                android:importantForAccessibility="no"
+                android:padding="@dimen/space_2"
+                android:src="@drawable/ic_school"
+                app:tint="@color/on_primary" />
+
+            <!-- 点击进度圆点：第 2~5 次点击时短暂显示 -->
+            <LinearLayout
+                android:id="@+id/unlock_dots"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|center_horizontal"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <View
+                    android:layout_width="@dimen/unlock_dot"
+                    android:layout_height="@dimen/unlock_dot"
+                    android:layout_marginStart="@dimen/space_1"
+                    android:layout_marginEnd="@dimen/space_1"
+                    android:background="@drawable/bg_dot" />
+
+                <View
+                    android:layout_width="@dimen/unlock_dot"
+                    android:layout_height="@dimen/unlock_dot"
+                    android:layout_marginStart="@dimen/space_1"
+                    android:layout_marginEnd="@dimen/space_1"
+                    android:background="@drawable/bg_dot" />
+
+                <View
+                    android:layout_width="@dimen/unlock_dot"
+                    android:layout_height="@dimen/unlock_dot"
+                    android:layout_marginStart="@dimen/space_1"
+                    android:layout_marginEnd="@dimen/space_1"
+                    android:background="@drawable/bg_dot" />
+
+                <View
+                    android:layout_width="@dimen/unlock_dot"
+                    android:layout_height="@dimen/unlock_dot"
+                    android:layout_marginStart="@dimen/space_1"
+                    android:layout_marginEnd="@dimen/space_1"
+                    android:background="@drawable/bg_dot" />
+
+                <View
+                    android:layout_width="@dimen/unlock_dot"
+                    android:layout_height="@dimen/unlock_dot"
+                    android:layout_marginStart="@dimen/space_1"
+                    android:layout_marginEnd="@dimen/space_1"
+                    android:background="@drawable/bg_dot" />
+
+            </LinearLayout>
+
+        </FrameLayout>
 
         <ImageButton
             android:id="@+id/btn_back"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
-            android:layout_marginStart="2dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="后退"
-            android:src="@drawable/ic_back" />
+            style="@style/Widget.Campus.ToolbarIcon"
+            android:layout_marginStart="@dimen/space_2"
+            android:contentDescription="@string/cd_back"
+            android:src="@drawable/ic_back"
+            app:tint="@color/nav_icon_selector" />
 
         <ImageButton
             android:id="@+id/btn_forward"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
-            android:layout_marginStart="2dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="前进"
-            android:src="@drawable/ic_forward" />
+            style="@style/Widget.Campus.ToolbarIcon"
+            android:contentDescription="@string/cd_forward"
+            android:src="@drawable/ic_forward"
+            app:tint="@color/nav_icon_selector" />
 
-        <!-- 胶囊地址栏 -->
+        <!-- 胶囊地址栏（44dp / 圆角 22dp / 只读反馈） -->
         <LinearLayout
+            android:id="@+id/address_bar"
             android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
+            android:layout_height="@dimen/address_bar_height"
+            android:layout_marginStart="@dimen/space_2"
+            android:layout_marginEnd="@dimen/space_2"
             android:layout_weight="1"
             android:background="@drawable/bg_address"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingStart="12dp"
-            android:paddingEnd="10dp">
+            android:paddingStart="@dimen/space_3"
+            android:paddingEnd="@dimen/space_3">
 
             <ImageView
-                android:layout_width="15dp"
-                android:layout_height="15dp"
+                android:id="@+id/iv_address_icon"
+                android:layout_width="@dimen/address_icon_size"
+                android:layout_height="@dimen/address_icon_size"
                 android:contentDescription="@null"
-                android:src="@drawable/ic_public" />
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_public"
+                app:tint="@color/text_tertiary" />
 
             <EditText
                 android:id="@+id/et_address"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:layout_marginStart="7dp"
+                android:layout_marginStart="@dimen/space_2"
                 android:layout_weight="1"
                 android:background="@null"
                 android:cursorVisible="false"
+                android:ellipsize="middle"
                 android:focusable="false"
                 android:focusableInTouchMode="false"
                 android:gravity="center_vertical"
-                android:hint="受管模式，地址不可编辑"
+                android:hint="@string/address_hint_readonly"
                 android:imeOptions="actionGo"
                 android:inputType="textUri"
                 android:maxLines="1"
+                android:paddingStart="0dp"
+                android:paddingEnd="0dp"
                 android:singleLine="true"
                 android:textColor="@color/address_text"
-                android:textColorHint="#8A99AC"
-                android:textSize="13sp" />
+                android:textColorHint="@color/address_hint"
+                android:textSize="@dimen/text_body_sm" />
 
         </LinearLayout>
 
         <ImageButton
             android:id="@+id/btn_scan"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
-            android:layout_marginStart="6dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="扫码"
-            android:src="@drawable/ic_scan" />
+            style="@style/Widget.Campus.ToolbarIcon"
+            android:contentDescription="@string/cd_scan"
+            android:src="@drawable/ic_scan"
+            app:tint="@color/nav_icon_selector" />
 
         <ImageButton
             android:id="@+id/btn_refresh"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
-            android:layout_marginStart="2dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="刷新"
-            android:src="@drawable/ic_refresh" />
+            style="@style/Widget.Campus.ToolbarIcon"
+            android:contentDescription="@string/cd_refresh"
+            android:src="@drawable/ic_refresh"
+            app:tint="@color/nav_icon_selector" />
 
         <ImageButton
             android:id="@+id/btn_bookmarks"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
-            android:layout_marginStart="2dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="快捷书签"
-            android:src="@drawable/ic_bookmark" />
+            style="@style/Widget.Campus.ToolbarIcon"
+            android:contentDescription="@string/cd_bookmarks"
+            android:src="@drawable/ic_bookmark"
+            app:tint="@color/nav_icon_selector" />
 
         <ImageButton
             android:id="@+id/btn_apps"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
-            android:layout_marginStart="2dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="其他应用"
-            android:src="@drawable/ic_apps" />
+            style="@style/Widget.Campus.ToolbarIcon"
+            android:contentDescription="@string/cd_apps"
+            android:src="@drawable/ic_apps"
+            app:tint="@color/nav_icon_selector" />
 
         <ImageButton
             android:id="@+id/btn_home"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
-            android:layout_marginStart="2dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="回到首页"
-            android:src="@drawable/ic_home" />
+            style="@style/Widget.Campus.ToolbarIcon"
+            android:contentDescription="@string/cd_home"
+            android:src="@drawable/ic_home"
+            app:tint="@color/nav_icon_selector" />
 
     </LinearLayout>
 
     <View
         android:layout_width="match_parent"
-        android:layout_height="1dp"
+        android:layout_height="@dimen/hairline"
         android:background="@color/outline_variant" />
+
+    <!-- 全局状态条：替代瞬时 Toast，同一时刻只显示最新一条 -->
+    <LinearLayout
+        android:id="@+id/status_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/primary_50"
+        android:gravity="center_vertical"
+        android:minHeight="@dimen/status_bar_height"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/space_4"
+        android:paddingEnd="@dimen/space_2"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="@dimen/status_icon_size"
+            android:layout_height="@dimen/status_icon_size"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_refresh"
+            app:tint="@color/primary" />
+
+        <TextView
+            android:id="@+id/tv_status"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_2"
+            android:layout_weight="1"
+            android:accessibilityLiveRegion="polite"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textColor="@color/primary"
+            android:textSize="@dimen/text_caption" />
+
+        <ImageButton
+            android:id="@+id/btn_status_close"
+            android:layout_width="@dimen/touch_min"
+            android:layout_height="@dimen/touch_min"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/cd_status_close"
+            android:padding="@dimen/space_3"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_close"
+            app:tint="@color/primary" />
+
+    </LinearLayout>
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -159,13 +258,96 @@
         <com.google.android.material.progressindicator.LinearProgressIndicator
             android:id="@+id/progress"
             android:layout_width="match_parent"
-            android:layout_height="3dp"
+            android:layout_height="@dimen/progress_thickness"
             android:layout_gravity="top"
+            android:indeterminate="false"
             android:max="100"
             android:visibility="gone"
-            android:indeterminate="false"
             app:indicatorColor="@color/primary"
-            app:trackThickness="3dp" />
+            app:trackColor="@color/surface_3"
+            app:trackThickness="@dimen/progress_thickness" />
+
+        <!-- 首帧加载层：冷启动立即显示，避免白屏 -->
+        <FrameLayout
+            android:id="@+id/loading_overlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/background"
+            android:clickable="true"
+            android:focusable="true">
+
+            <LinearLayout
+                android:layout_width="@dimen/loading_card_width"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_loading_card"
+                android:elevation="@dimen/elevation_card"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:padding="@dimen/space_5">
+
+                <FrameLayout
+                    android:layout_width="@dimen/loading_icon_box"
+                    android:layout_height="@dimen/loading_icon_box"
+                    android:background="@drawable/bg_loading_icon">
+
+                    <ImageView
+                        android:layout_width="@dimen/loading_icon_size"
+                        android:layout_height="@dimen/loading_icon_size"
+                        android:layout_gravity="center"
+                        android:contentDescription="@null"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_school"
+                        app:tint="@color/primary" />
+
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_4"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="@string/loading_title"
+                    android:textColor="@color/on_surface"
+                    android:textSize="@dimen/text_title" />
+
+                <TextView
+                    android:id="@+id/tv_loading_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_2"
+                    android:gravity="center"
+                    android:text="@string/loading_portal"
+                    android:textColor="@color/on_surface_variant"
+                    android:textSize="@dimen/text_body_sm" />
+
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/loading_progress"
+                    android:layout_width="@dimen/loading_progress_width"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_5"
+                    android:indeterminate="true"
+                    app:indicatorColor="@color/primary"
+                    app:trackColor="@color/surface_3"
+                    app:trackThickness="@dimen/progress_thickness" />
+
+                <TextView
+                    android:id="@+id/tv_loading_hint"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_4"
+                    android:text="@string/loading_device_hint"
+                    android:textColor="@color/text_tertiary"
+                    android:textSize="@dimen/text_micro"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+        </FrameLayout>
+
+        <include
+            android:id="@+id/blocked_overlay"
+            layout="@layout/view_blocked" />
 
         <LinearLayout
             android:id="@+id/error_overlay"
@@ -176,48 +358,94 @@
             android:focusable="true"
             android:gravity="center"
             android:orientation="vertical"
-            android:padding="32dp"
+            android:padding="@dimen/space_6"
             android:visibility="gone">
 
             <FrameLayout
-                android:layout_width="76dp"
-                android:layout_height="76dp"
+                android:layout_width="@dimen/error_illustration"
+                android:layout_height="@dimen/error_illustration"
                 android:background="@drawable/bg_error_circle">
 
                 <ImageView
-                    android:layout_width="38dp"
-                    android:layout_height="38dp"
+                    android:id="@+id/iv_error_icon"
+                    android:layout_width="@dimen/error_icon_size"
+                    android:layout_height="@dimen/error_icon_size"
                     android:layout_gravity="center"
                     android:contentDescription="@null"
-                    android:src="@drawable/ic_warning" />
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_wifi_off"
+                    app:tint="@color/error" />
 
             </FrameLayout>
 
             <TextView
+                android:id="@+id/tv_error_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:text="@string/error_title"
+                android:layout_marginTop="@dimen/space_4"
+                android:fontFamily="sans-serif-medium"
+                android:text="@string/error_network"
                 android:textColor="@color/on_surface"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+                android:textSize="@dimen/text_title" />
 
             <TextView
+                android:id="@+id/tv_error_message"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="请检查网络连接后重试"
+                android:layout_marginTop="@dimen/space_2"
+                android:gravity="center"
+                android:text="@string/error_hint"
                 android:textColor="@color/on_surface_variant"
-                android:textSize="14sp" />
+                android:textSize="@dimen/text_body_sm" />
 
-            <Button
-                android:id="@+id/btn_retry"
+            <TextView
+                android:id="@+id/tv_error_url"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="22dp"
-                android:paddingStart="28dp"
-                android:paddingEnd="28dp"
-                android:text="@string/retry" />
+                android:layout_marginTop="@dimen/space_3"
+                android:background="@drawable/bg_url_chip"
+                android:ellipsize="middle"
+                android:maxWidth="@dimen/error_url_max_width"
+                android:paddingStart="@dimen/space_3"
+                android:paddingTop="@dimen/space_1"
+                android:paddingEnd="@dimen/space_3"
+                android:paddingBottom="@dimen/space_1"
+                android:singleLine="true"
+                android:textColor="@color/text_tertiary"
+                android:textSize="@dimen/text_caption"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_5"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btn_retry"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/button_height"
+                    android:text="@string/retry" />
+
+                <Button
+                    android:id="@+id/btn_error_home"
+                    style="@style/Widget.Campus.Button.Outlined"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_marginStart="@dimen/space_3"
+                    android:text="@string/back_home" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_error_technical"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_4"
+                android:textColor="@color/text_disabled"
+                android:textSize="@dimen/text_micro"
+                android:visibility="gone" />
 
         </LinearLayout>
 

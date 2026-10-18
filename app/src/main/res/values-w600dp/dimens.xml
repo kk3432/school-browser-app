@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- v0.9.0 大屏（10 寸 / 横屏 sw600dp）放大一档，避免内容在宽屏上过于拥挤 -->
+<resources>
+    <dimen name="toolbar_height">64dp</dimen>
+    <dimen name="text_title">24sp</dimen>
+    <dimen name="setup_card_max_width">560dp</dimen>
+    <dimen name="pin_dialog_width">400dp</dimen>
+    <dimen name="space_3">16dp</dimen>
+    <dimen name="space_4">20dp</dimen>
+    <dimen name="space_5">30dp</dimen>
+    <dimen name="space_6">40dp</dimen>
+</resources>

@@ -1,11 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">校园浏览器</string>
+
+    <!-- 首启配置页 -->
     <string name="setup_title">连接配置服务器</string>
     <string name="setup_hint">请输入服务器地址，如 http://192.168.1.10:8080</string>
     <string name="setup_connect">连接并获取配置</string>
     <string name="setup_required">首次启动必须成功获取配置后才能进入</string>
+    <string name="setup_brand_subtitle">受管安全上网 · 教学专用</string>
+    <string name="setup_scan">扫码填写服务器地址</string>
+    <string name="setup_brand_en">CAMPUS MANAGED BROWSER</string>
+    <string name="setup_connecting">正在连接服务器并获取配置…</string>
+    <string name="setup_error_empty">请填写服务器地址</string>
+    <string name="setup_error_scheme">地址需以 http:// 或 https:// 开头</string>
+    <string name="setup_error_network">无法连接服务器，请检查地址和网络</string>
+    <string name="setup_error_cert">服务器证书校验失败，请联系管理员</string>
+    <string name="setup_error_signature">配置签名校验失败，请联系管理员</string>
+    <string name="setup_error_unknown">获取配置失败，请检查地址后重试</string>
+    <string name="setup_scan_invalid">请扫描服务器地址二维码</string>
+
+    <!-- 工具栏 / 地址栏 -->
+    <string name="cd_back">后退</string>
+    <string name="cd_forward">前进</string>
+    <string name="cd_scan">扫码</string>
+    <string name="cd_refresh">刷新</string>
+    <string name="cd_bookmarks">快捷书签</string>
+    <string name="cd_apps">其他应用</string>
+    <string name="cd_home">回到首页</string>
+    <string name="cd_logo">校园浏览器</string>
+    <string name="cd_status_close">关闭提示</string>
+    <string name="address_hint_readonly">受管模式，地址不可编辑</string>
+    <string name="address_hint_editable">输入网址后回车访问</string>
+    <string name="address_readonly_tip">受管模式下地址不可编辑</string>
+    <string name="address_invalid">请输入有效网址</string>
     <string name="blocked_title">访问受限</string>
-    <string name="blocked_text">该网址不在允许访问的范围内。</string>
+    <string name="blocked_text">该网址不在学校允许访问的范围内。如需访问，请联系老师。</string>
+    <string name="blocked_reload">重新加载</string>
+
+    <!-- 加载态 -->
+    <string name="loading_title">校园浏览器</string>
+    <string name="loading_portal">正在打开校园门户…</string>
+    <string name="loading_config">正在同步校园配置…</string>
+    <string name="loading_device">正在核验设备…</string>
+    <string name="loading_device_hint">首次启动可能需要几秒钟</string>
+    <string name="loading_retry">网络较慢，正在重试…</string>
+
+    <!-- 错误层 -->
     <string name="error_title">页面加载失败</string>
+    <string name="error_network">网络连接失败，请检查 WiFi</string>
+    <string name="error_timeout">网络连接超时，请检查 WiFi</string>
+    <string name="error_ssl">安全证书校验失败</string>
+    <string name="error_unknown">页面加载失败</string>
+    <string name="error_http">页面打开失败（%1$d）</string>
+    <string name="error_hint">请检查平板 WiFi，或举手联系老师</string>
     <string name="retry">重试</string>
+    <string name="back_home">返回首页</string>
+    <string name="error_technical">错误码 %1$d · %2$s</string>
+
+    <!-- 状态条 -->
+    <string name="status_shortcut">正在打开桌面快捷方式</string>
+    <string name="status_config_updated">配置已更新到 v%1$s</string>
+    <string name="status_temp_unlock">临时无管控已开启，重启 APP 后自动恢复</string>
+    <string name="status_render_recovered">页面渲染进程已重启，正在恢复…</string>
+    <string name="status_blocked_exit">受管浏览器，已回到首页</string>
+    <string name="status_home_already">已回到校园门户</string>
+    <string name="status_hidden_disabled">管理入口未启用</string>
+    <string name="status_download_blocked">已禁止文件下载</string>
+    <string name="status_shortcut_added">%1$s</string>
+
+    <!-- 书签 / 应用 -->
+    <string name="bookmarks_title">快捷书签</string>
+    <string name="bookmarks_subtitle_long_press">长按条目可添加到桌面</string>
+    <string name="bookmarks_empty">暂无快捷书签，请联系老师</string>
+    <string name="bookmarks_empty_hint">老师可在服务器后台为班级配置常用网站</string>
+    <string name="apps_title">应用</string>
+    <string name="apps_empty">服务器未配置可启动的应用</string>
+    <string name="apps_empty_hint">请联系老师在后台上传并允许启动应用</string>
+    <string name="close">关闭</string>
+    <string name="cancel">取消</string>
+    <string name="open">打开</string>
+    <string name="add_to_home">添加到桌面</string>
+
+    <!-- 扫码 / 唤醒应用 -->
+    <string name="scan_invalid">无法识别：仅支持网址或应用二维码</string>
+    <string name="app_not_installed">目标应用未安装</string>
+    <string name="app_not_allowed">服务器未允许启动该应用</string>
+
+    <!-- 管理员验证 -->
+    <string name="pin_title">管理员验证</string>
+    <string name="pin_hint">6 位管理密码</string>
+    <string name="pin_confirm">确认</string>
+    <string name="pin_invalid_length">请输入 6 位数字密码</string>
+    <string name="pin_verifying">验证中…</string>
+    <string name="pin_wrong">密码错误，还可尝试 %1$d 次</string>
+    <string name="pin_locked_title">已锁定</string>
+    <string name="pin_locked">密码错误次数过多，请 %1$d 分钟后再试。</string>
+    <string name="pin_got_it">知道了</string>
+    <string name="admin_actions_title">管理员操作</string>
+    <string name="admin_change_server">修改服务器地址</string>
+    <string name="admin_temp_unlock">临时无管控模式（重启 APP 后恢复）</string>
+
+    <!-- 权限 / 拍照（文案不得暴露拍照事实） -->
+    <string name="permission_title">需要相机权限</string>
+    <string name="permission_rationale">学校要求使用平板前进行身份确认。照片仅上传到学校服务器，用于考勤管理，不对外发送。</string>
+    <string name="permission_blocked_title">无法进入浏览器</string>
+    <string name="permission_blocked_message">学校要求启动时使用相机确认身份。未授权相机权限将无法使用本浏览器。</string>
+    <string name="permission_retry">重新授权</string>
+    <string name="exit">退出</string>
 </resources>

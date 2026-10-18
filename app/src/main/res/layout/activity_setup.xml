@@ -6,13 +6,13 @@
     android:background="@color/background"
     android:orientation="horizontal">
 
-    <!-- 左侧品牌面板 -->
+    <!-- 左侧品牌区：40% -->
     <FrameLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="0.40"
         android:background="@drawable/bg_brand_gradient"
-        android:padding="32dp">
+        android:padding="@dimen/space_6">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -22,58 +22,58 @@
             android:orientation="vertical">
 
             <FrameLayout
-                android:layout_width="92dp"
-                android:layout_height="92dp"
+                android:layout_width="@dimen/brand_panel_size"
+                android:layout_height="@dimen/brand_panel_size"
                 android:background="@drawable/bg_logo_panel">
 
                 <ImageView
-                    android:layout_width="52dp"
-                    android:layout_height="52dp"
+                    android:layout_width="@dimen/brand_icon_size"
+                    android:layout_height="@dimen/brand_icon_size"
                     android:layout_gravity="center"
                     android:contentDescription="@null"
-                    android:src="@drawable/ic_school" />
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_school"
+                    app:tint="@color/on_primary" />
 
             </FrameLayout>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:text="校园浏览器"
-                android:textColor="#FFFFFF"
-                android:textSize="26sp"
-                android:textStyle="bold" />
+                android:layout_marginTop="@dimen/space_4"
+                android:fontFamily="sans-serif-medium"
+                android:text="@string/app_name"
+                android:textColor="@color/on_primary"
+                android:textSize="@dimen/text_display" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:alpha="0.85"
+                android:layout_marginTop="@dimen/space_1"
                 android:letterSpacing="0.08"
-                android:text="CAMPUS MANAGED BROWSER"
-                android:textColor="#FFFFFF"
-                android:textSize="11sp" />
+                android:text="@string/setup_brand_en"
+                android:textColor="@color/white_40"
+                android:textSize="@dimen/text_micro" />
 
             <View
-                android:layout_width="28dp"
-                android:layout_height="2dp"
-                android:layout_marginTop="18dp"
-                android:background="#66FFFFFF" />
+                android:layout_width="@dimen/brand_rule_width"
+                android:layout_height="@dimen/brand_rule_height"
+                android:layout_marginTop="@dimen/space_4"
+                android:background="@color/white_40" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:alpha="0.92"
-                android:text="受管安全上网 · 教学专用"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp" />
+                android:layout_marginTop="@dimen/space_4"
+                android:text="@string/setup_brand_subtitle"
+                android:textColor="@color/on_primary"
+                android:textSize="@dimen/text_body_sm" />
 
         </LinearLayout>
 
     </FrameLayout>
 
-    <!-- 右侧表单 -->
+    <!-- 右侧配置区：60% -->
     <ScrollView
         android:layout_width="0dp"
         android:layout_height="match_parent"
@@ -83,93 +83,96 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:gravity="center"
+            android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:padding="36dp">
+            android:paddingStart="@dimen/space_6"
+            android:paddingTop="@dimen/space_5"
+            android:paddingEnd="@dimen/space_6"
+            android:paddingBottom="@dimen/space_5">
 
             <com.google.android.material.card.MaterialCardView
-                android:layout_width="460dp"
+                android:id="@+id/setup_card"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardBackgroundColor="@color/surface"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="3dp"
+                app:cardCornerRadius="@dimen/login_card_radius"
+                app:cardElevation="@dimen/elevation_card"
                 app:strokeColor="@color/outline_variant"
-                app:strokeWidth="1dp">
+                app:strokeWidth="@dimen/hairline">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="30dp">
+                    android:padding="@dimen/space_4">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
                         android:text="@string/setup_title"
                         android:textColor="@color/on_surface"
-                        android:textSize="21sp"
-                        android:textStyle="bold" />
+                        android:textSize="@dimen/text_title_lg" />
 
                     <TextView
-                        android:layout_width="match_parent"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:lineSpacingExtra="2dp"
+                        android:layout_marginTop="@dimen/space_2"
                         android:text="@string/setup_required"
                         android:textColor="@color/on_surface_variant"
-                        android:textSize="13sp" />
+                        android:textSize="@dimen/text_caption" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/til_base_url"
                         style="@style/Widget.Campus.TextInput"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="24dp"
-                        android:hint="@string/setup_hint"
+                        android:layout_marginTop="@dimen/space_4"
                         app:startIconDrawable="@drawable/ic_link">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_base_url"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
+                            android:layout_height="@dimen/pin_input_height"
+                            android:hint="@string/setup_hint"
                             android:imeOptions="actionGo"
                             android:inputType="textUri"
+                            android:maxLines="1"
                             android:singleLine="true"
-                            android:text="http://"
-                            android:textSize="15sp" />
+                            android:textSize="@dimen/text_body_sm" />
 
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <Button
                         android:id="@+id/btn_connect"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="18dp"
+                        android:layout_height="@dimen/button_height"
+                        android:layout_marginTop="@dimen/space_4"
                         android:text="@string/setup_connect" />
 
                     <Button
                         android:id="@+id/btn_scan"
-                        style="?attr/materialButtonOutlinedStyle"
+                        style="@style/Widget.Campus.Button.Outlined"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:text="扫码填写服务器地址"
-                        app:icon="@drawable/ic_scan" />
+                        android:layout_height="@dimen/button_height"
+                        android:layout_marginTop="@dimen/space_2"
+                        android:text="@string/setup_scan"
+                        app:icon="@drawable/ic_scan"
+                        app:iconTint="@color/nav_icon" />
 
                     <FrameLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp">
+                        android:layout_marginTop="@dimen/space_2">
 
                         <com.google.android.material.progressindicator.CircularProgressIndicator
                             android:id="@+id/progress"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
+                            android:layout_width="@dimen/icon_24"
+                            android:layout_height="@dimen/icon_24"
+                            android:layout_gravity="center_horizontal"
+                            android:indeterminate="true"
                             android:visibility="gone"
-                            app:indicatorSize="28dp"
-                            app:trackThickness="3dp" />
+                            app:indicatorColor="@color/primary" />
 
                     </FrameLayout>
 
@@ -177,9 +180,10 @@
                         android:id="@+id/tv_status"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_2"
                         android:gravity="center"
                         android:textColor="@color/on_surface_variant"
-                        android:textSize="13sp" />
+                        android:textSize="@dimen/text_caption" />
 
                 </LinearLayout>
 

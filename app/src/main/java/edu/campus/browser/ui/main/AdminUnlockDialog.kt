@@ -2,11 +2,18 @@ package edu.campus.browser.ui.main
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.content.pm.PackageManager
+import android.view.WindowManager
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
+import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import edu.campus.browser.R
 import edu.campus.browser.SecurityConfig
 import edu.campus.browser.capture.FrontCameraCapture
 import edu.campus.browser.config.AppConfig
@@ -23,6 +30,9 @@ import kotlinx.coroutines.withContext
  * v0.7.0 起：PIN 不在本地比对，改为把 MD5(pin+盐) 哈希发到服务端 /api/v1/verify-pin 校验；
  * 离线/网络失败/限频统一按「密码错误」处理（不暴露离线原因）。
  * 通过后可：修改服务器地址 / 开启临时无管控模式。连续输错锁定。
+ *
+ * v0.9.0 可用性改造（P0-7）：340dp 宽、打开即聚焦并弹键盘、错误走 TextInputLayout.error、
+ * 提交中禁用按钮 + 进度环、回车即提交。锁定与输错拍照逻辑保持不变。
  */
 class AdminUnlockDialog private constructor() {
 
@@ -39,34 +49,41 @@ class AdminUnlockDialog private constructor() {
             if (now < lockUntil) {
                 val minutes = (lockUntil - now) / 60000 + 1
                 MaterialAlertDialogBuilder(activity)
-                    .setTitle("已锁定")
-                    .setMessage("密码错误次数过多，请 ${minutes} 分钟后再试。")
-                    .setPositiveButton("知道了", null)
+                    .setTitle(R.string.pin_locked_title)
+                    .setMessage(activity.getString(R.string.pin_locked, minutes))
+                    .setPositiveButton(R.string.pin_got_it, null)
                     .show()
                 return
             }
 
             val binding = DialogAdminPinBinding.inflate(activity.layoutInflater)
             val dialog = MaterialAlertDialogBuilder(activity)
-                .setTitle("管理员验证")
+                .setTitle(R.string.pin_title)
                 .setView(binding.root)
-                .setNegativeButton("取消", null)
+                .setNegativeButton(R.string.cancel, null)
                 .create()
 
-            binding.btnConfirm.setOnClickListener {
+            fun setVerifying(verifying: Boolean) {
+                binding.btnConfirm.isEnabled = !verifying
+                binding.etPin.isEnabled = !verifying
+                binding.pinProgress.isVisible = verifying
+                binding.tvPinMsg.isVisible = verifying
+                if (verifying) binding.tvPinMsg.setText(R.string.pin_verifying)
+            }
+
+            fun submit() {
                 val pin = binding.etPin.text.toString()
                 if (pin.length != 6 || !pin.all { it.isDigit() }) {
-                    binding.tvPinMsg.text = "请输入 6 位数字密码"
-                    return@setOnClickListener
+                    binding.tilPin.error = activity.getString(R.string.pin_invalid_length)
+                    return
                 }
-                // 服务端校验是网络请求，禁用按钮防止重复提交
-                binding.btnConfirm.isEnabled = false
-                binding.tvPinMsg.text = "验证中…"
+                binding.tilPin.error = null
+                setVerifying(true)
                 activity.lifecycleScope.launch(Dispatchers.IO) {
                     val pinHash = Crypto.pinHash(pin)
                     val matched = ConfigRepository.get(activity).verifyPin(pinHash)
                     withContext(Dispatchers.Main) {
-                        binding.btnConfirm.isEnabled = true
+                        setVerifying(false)
                         if (matched) {
                             kv.encode(KV_FAIL_COUNT, 0)
                             kv.encode(KV_LOCK_UNTIL, 0L)
@@ -84,24 +101,46 @@ class AdminUnlockDialog private constructor() {
                                 show(activity, config, onAction) // 直接展示锁定提示
                             } else {
                                 val left = SecurityConfig.MAX_PIN_ATTEMPTS - fails
-                                binding.tvPinMsg.text = "密码错误，还可尝试 $left 次"
+                                binding.tilPin.error = activity.getString(R.string.pin_wrong, left)
                                 binding.etPin.text?.clear()
                             }
                         }
                     }
                 }
             }
+
+            binding.btnConfirm.setOnClickListener { submit() }
+            binding.etPin.setOnEditorActionListener { _, actionId, _ ->
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    submit()
+                    true
+                } else false
+            }
+            // 用户重新输入时清掉错误提示
+            binding.etPin.doAfterTextChanged { binding.tilPin.error = null }
+
+            dialog.setOnShowListener {
+                binding.etPin.requestFocus()
+                dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
+                binding.etPin.postDelayed({
+                    val imm = activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                    imm.showSoftInput(binding.etPin, InputMethodManager.SHOW_IMPLICIT)
+                }, 100L)
+            }
             dialog.show()
         }
 
         private fun showActions(activity: Activity, onAction: (Action) -> Unit) {
-            val items = arrayOf("修改服务器地址", "临时无管控模式（重启 APP 后恢复）")
+            val items = arrayOf(
+                activity.getString(R.string.admin_change_server),
+                activity.getString(R.string.admin_temp_unlock)
+            )
             MaterialAlertDialogBuilder(activity)
-                .setTitle("管理员操作")
+                .setTitle(R.string.admin_actions_title)
                 .setItems(items) { _, which ->
                     onAction(if (which == 0) Action.CHANGE_SERVER else Action.TEMP_UNLOCK)
                 }
-                .setNegativeButton("关闭", null)
+                .setNegativeButton(R.string.close, null)
                 .show()
         }
 

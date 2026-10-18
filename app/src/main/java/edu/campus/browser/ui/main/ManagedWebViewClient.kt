@@ -4,9 +4,10 @@ import android.graphics.Bitmap
 import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.Toast
+import edu.campus.browser.R
 import edu.campus.browser.applaunch.AppLauncher
 import edu.campus.browser.applaunch.LaunchResult
 import edu.campus.browser.config.AppConfig
@@ -15,14 +16,21 @@ import edu.campus.browser.ui.AdminSession
 
 /**
  * 受管 WebViewClient：所有页面跳转都过白/黑名单。
+ *
+ * v0.9.0：
+ * - 顶层页面错误按 errorCode 分类上报（原文案统一为「页面加载失败」）；
+ * - 新增 onReceivedHttpError（4xx/5xx 只提示，不拦截页面）；
+ * - 拉起应用失败的提示改走状态条回调 [onNotify]，不再直接弹 Toast。
  */
 class ManagedWebViewClient(
     private val configProvider: () -> AppConfig?,
     private val onBlocked: (url: String) -> Unit,
-    private val onMainFrameError: () -> Unit,
+    private val onMainFrameError: (url: String?, errorCode: Int, description: String?) -> Unit,
+    private val onHttpError: (statusCode: Int, url: String?) -> Unit,
     private val onPageStarted: (url: String) -> Unit,
     private val onPageFinished: (url: String) -> Unit,
-    private val onRenderGone: () -> Unit
+    private val onRenderGone: () -> Unit,
+    private val onNotify: (message: String) -> Unit
 ) : WebViewClient() {
 
     // v0.8.2：规则匹配器按配置实例缓存，配置刷新（config 被替换）时才重建，
@@ -51,10 +59,10 @@ class ManagedWebViewClient(
             val cfg = configProvider() ?: return true
             when (AppLauncher.launch(view.context, cfg, url)) {
                 LaunchResult.LAUNCHED -> Unit
-                LaunchResult.NOT_INSTALLED -> Toast.makeText(
-                    view.context, "目标应用未安装", Toast.LENGTH_SHORT).show()
-                LaunchResult.NOT_WHITELISTED -> Toast.makeText(
-                    view.context, "未允许启动该应用", Toast.LENGTH_SHORT).show()
+                LaunchResult.NOT_INSTALLED ->
+                    onNotify(view.context.getString(R.string.app_not_installed))
+                LaunchResult.NOT_WHITELISTED ->
+                    onNotify(view.context.getString(R.string.app_not_allowed))
             }
             return true // 自定义 scheme 一律不交给 WebView 加载
         }
@@ -93,6 +101,20 @@ class ManagedWebViewClient(
         request: WebResourceRequest?,
         error: WebResourceError?
     ) {
-        if (request?.isForMainFrame == true) onMainFrameError()
+        if (request?.isForMainFrame != true) return
+        val code = error?.errorCode ?: 0
+        val description = error?.description?.toString()
+        onMainFrameError(request.url?.toString(), code, description)
+    }
+
+    /** v0.9.0：4xx/5xx 只做提示，不拦截页面渲染（服务端自带错误页仍然显示）。 */
+    override fun onReceivedHttpError(
+        view: WebView?,
+        request: WebResourceRequest?,
+        errorResponse: WebResourceResponse?
+    ) {
+        if (request?.isForMainFrame != true) return
+        val status = errorResponse?.statusCode ?: return
+        if (status >= 400) onHttpError(status, request.url?.toString())
     }
 }

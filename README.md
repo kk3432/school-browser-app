@@ -2,19 +2,19 @@
 
 **受管 WebView 壳**：服务端下发 RSA 签名配置，平板按白/黑名单强制跳转管控。面向教室平板、电子班牌的统一上网管理。
 
-![version](https://img.shields.io/badge/version-0.8.2-1b7ae0)
+![version](https://img.shields.io/badge/version-0.9.0-1e40af)
 ![android](https://img.shields.io/badge/Android-7.0%2B%20(API%2024)-3ddc84)
 ![license](https://img.shields.io/badge/license-GPL--3.0-12b3a8)
 
 | 项 | 值 |
 | --- | --- |
-| 包名 / 版本 | `edu.campus.browser` · versionCode 12 · versionName 0.8.2 |
+| 包名 / 版本 | `edu.campus.browser` · versionCode 13 · versionName 0.9.0 |
 | 运行环境 | Android 7.0+（minSdk 24）/ targetSdk 34 / 系统 WebView |
-| 体积 | release 约 3.72 MB（R8 混淆 + 资源压缩，仅 arm64-v8a / armeabi-v7a） |
+| 体积 | release 约 3.77 MB（3,957,557 B；R8 混淆 + 资源压缩，仅 arm64-v8a / armeabi-v7a） |
 | 签名 | debug keystore（SHA-256 `9E:18:19:8C:...:97:B4`），**可覆盖安装旧版** |
 | **服务端** | v0.8.0+ 全部功能可用（新字段一律可选）；**服务端 v0.8.3 起强制校验 UA**，因此要求 APP ≥ v0.7.0 —— APP 的所有请求都自带 `User-Agent: CampusBrowser/{版本} OkHttp/4.12`，`/api/v1/public-key` 也一样 |
 
-> 版本对应：**v0.8.4 只改服务端（后台界面视觉改版），APP 最新版仍是 v0.8.2**（versionCode 12），无需重新出包；v0.8.3 亦同样只改服务端。
+> 版本对应：**v0.9.0 为 APP 界面改版**（设计令牌对齐服务端后台 + 加载/错误/拦截/空态四态 + 无障碍 + 大屏适配），**服务端无需升级**（v0.8.4 即可，接口未变，配置 `schema_version` 仍为 1）。
 
 ---
 
@@ -43,15 +43,27 @@ flowchart TD
 | 模块 | 能力 |
 | --- | --- |
 | **受管浏览** | WebView 强制白/黑名单（域名 / `host:端口` / 路径前缀，不看协议）；禁长按菜单、禁下载、禁缩放，地址栏受管时只读 |
+| **原生拦截页** | 越界访问显示原生覆盖层（非 WebView 内联 HTML）：标题 + 被拦网址 + 「返回首页 / 重新加载」，系统返回键可退出拦截页 |
 | **快捷书签** | 工具栏一键打开；白名单模式下自动放行；**长按条目可「添加到桌面」**，桌面图标点一下直接进该书签页 |
 | **桌面快捷方式** | Android 8+ 用 `ShortcutManager.requestPinShortcut`，老桌面回退 `INSTALL_SHORTCUT` 广播；各 ROM 支持不一会有提示；从快捷方式启动跳过拍照门控 |
-| **内置 HTML 页** | 服务端托管页 `/h/xxx` 在书签列表带 🏫 标记，可打开、可钉桌面 |
+| **内置 HTML 页** | 服务端托管页 `/h/xxx` 在书签列表带学校图标标记，可打开、可钉桌面 |
 | **扫码 / 唤醒应用** | ZXing 扫码（网址或 `app://包名`）；WebView 自定义 scheme 按服务端白名单拉起，工具栏「应用」按钮快速启动 |
 | **启动拍照** | 服务端开关控制；无前置摄像头则上报跳过；拍照/上传失败缓存，下次启动补传 |
 | **输错拍照** | 管理密码连续输错静默拍前置照片上传服务端，后台标红告警 |
 | **截屏限制** | `FLAG_SECURE` 全局禁止截屏/录屏（服务端开关） |
-| **隐藏入口** | 工具栏 Logo 3 秒内连点 5 次；服务端可远程彻底关闭（关闭后点击静默无效） |
+| **隐藏入口** | 工具栏 Logo 3 秒内连点 5 次，第 2~5 次有进度圆点反馈；服务端可远程彻底关闭（关闭后状态条提示「管理入口未启用」） |
 | **轮询更新** | 按服务端间隔拉取，RSA 验签失败或异常时**不覆盖**本地缓存 |
+| **加载态 / 状态条** | 冷启动全屏加载层（打开门户 → 同步配置 → 核验设备，站内跳转不重显）；全局状态条替代瞬时 Toast，3 秒自动淡出、可手动关闭 |
+
+### 界面设计系统（v0.9.0）
+
+- **颜色令牌**：与服务端后台同一套（primary #1E40AF / accent #B45309 / background #F8FAFC / on_surface #0F172A），全部集中在 res/values/colors.xml，布局与 Kotlin 中**零裸 hex**
+- **尺寸令牌**：res/values/dimens.xml（间距 4/8/12/16/24/32、圆角 8~14、触摸目标 48dp、字号 28/20/16/15/14/13/12sp）；布局里只剩 8 处结构性 0dp，无其他裸 dp
+- **触摸目标**：工具栏 7 个按钮与隐藏入口均为 48dp 点击区（视觉 24dp / 38dp），地址栏 44dp
+- **禁用态**：前进/后退走 nav_icon_selector（禁用色 #94A3B8），可用性一眼可辨
+- **无障碍**：全部图标按钮 contentDescription 走 strings.xml；对比度按 WCAG AA 校验（如地址栏 hint #475569 on #F1F5F9 = 6.92:1）；覆盖层弹出时转移焦点并朗读
+- **系统栏 / 深色**：状态栏与导航栏统一白底深色图标；forceDarkAllowed=false 关掉 OEM 强制反色；横屏刘海屏 shortEdges
+- **大屏**：values-w600dp 覆盖工具栏 64dp、标题 24sp、配置卡 560dp、PIN 弹窗 400dp
 
 ## 管理密码与解锁
 

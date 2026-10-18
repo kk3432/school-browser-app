@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  v0.9.0 间距 / 圆角 / 触摸目标 / 字号阶梯。
+  规则：布局里不再写裸 dp；字号一律用这些值，最小 12sp。
+-->
+<resources>
+
+    <!-- 间距节奏（4 的倍数） -->
+    <dimen name="space_1">4dp</dimen>
+    <dimen name="space_2">8dp</dimen>
+    <dimen name="space_3">12dp</dimen>
+    <dimen name="space_4">16dp</dimen>
+    <dimen name="space_5">24dp</dimen>
+    <dimen name="space_6">32dp</dimen>
+
+    <!-- 圆角 -->
+    <dimen name="radius_sm">8dp</dimen>
+    <dimen name="radius_md">10dp</dimen>
+    <dimen name="radius_lg">12dp</dimen>
+    <dimen name="radius_xl">14dp</dimen>
+    <dimen name="radius_full">999dp</dimen>
+
+    <!-- 尺寸 / 触摸目标（无障碍：可点区域 >= 48dp） -->
+    <dimen name="touch_min">48dp</dimen>
+    <dimen name="icon_24">24dp</dimen>
+    <dimen name="toolbar_height">56dp</dimen>
+    <dimen name="toolbar_icon_box">48dp</dimen>
+    <dimen name="toolbar_icon_visual">24dp</dimen>
+    <dimen name="address_bar_height">44dp</dimen>
+    <dimen name="address_bar_radius">22dp</dimen>
+    <dimen name="address_icon_size">13dp</dimen>
+    <dimen name="button_height">48dp</dimen>
+    <dimen name="list_row_min">56dp</dimen>
+    <dimen name="pin_dialog_width">340dp</dimen>
+    <dimen name="pin_input_height">56dp</dimen>
+    <dimen name="setup_card_max_width">520dp</dimen>
+    <dimen name="error_illustration">72dp</dimen>
+    <dimen name="error_icon_size">34dp</dimen>
+    <dimen name="progress_thickness">3dp</dimen>
+    <dimen name="loading_card_width">248dp</dimen>
+    <dimen name="loading_icon_box">72dp</dimen>
+    <dimen name="loading_icon_size">36dp</dimen>
+    <dimen name="status_bar_height">32dp</dimen>
+    <dimen name="status_icon_size">16dp</dimen>
+    <dimen name="unlock_visual">38dp</dimen>
+    <dimen name="unlock_dot">5dp</dimen>
+    <dimen name="login_card_radius">16dp</dimen>
+
+    <!-- 字号阶梯（全部 sp，禁止小于 12sp） -->
+    <dimen name="text_display">28sp</dimen>
+    <dimen name="text_title">20sp</dimen>
+    <dimen name="text_subtitle">16sp</dimen>
+    <dimen name="text_body">15sp</dimen>
+    <dimen name="text_body_sm">14sp</dimen>
+    <dimen name="text_caption">13sp</dimen>
+    <dimen name="text_micro">12sp</dimen>
+    <!-- 其余尺寸（v0.9.0 补充） -->
+    <dimen name="text_title_lg">24sp</dimen>
+    <dimen name="error_url_max_width">420dp</dimen>
+    <dimen name="status_bar_max_width">760dp</dimen>
+    <dimen name="hairline">1dp</dimen>
+    <dimen name="elevation_card">2dp</dimen>
+    <dimen name="loading_progress_width">120dp</dimen>
+    <dimen name="list_icon_size">48dp</dimen>
+    <dimen name="brand_panel_size">92dp</dimen>
+    <dimen name="brand_icon_size">52dp</dimen>
+    <dimen name="brand_rule_width">28dp</dimen>
+    <dimen name="brand_rule_height">2dp</dimen>
+</resources>

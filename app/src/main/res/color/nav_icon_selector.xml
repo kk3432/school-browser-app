@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- v0.9.0：导航图标禁用态可见（原实现 42dp ImageButton 禁用后与可点态无差别） -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_enabled="false" android:color="@color/nav_icon_disabled" />
+    <item android:color="@color/nav_icon" />
+</selector>

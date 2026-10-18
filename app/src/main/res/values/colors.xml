@@ -1,48 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  v0.9.0 设计令牌（与服务端 school-browser-server/wwwroot/styles.css 对齐）
+  规则：本文件只放颜色值，禁止在布局里写裸 hex；对比度见每行注释。
+-->
 <resources>
-    <!-- 品牌主色：教育蓝 -->
-    <color name="primary">#1B7AE0</color>
+
+    <!-- ===== 品牌主色（服务端 c-primary #1e40af）===== -->
+    <color name="primary">#1E40AF</color>          <!-- 白字 8.72:1，主按钮/图标强调 -->
     <color name="on_primary">#FFFFFF</color>
-    <color name="primary_container">#D8E9FF</color>
-    <color name="on_primary_container">#062E5C</color>
+    <color name="primary_600">#2563EB</color>      <!-- 白字 5.17:1，渐变亮端 -->
+    <color name="primary_500">#3B82F6</color>      <!-- 白字 3.68:1，仅图形，禁止承载文字 -->
+    <color name="primary_50">#EFF6FF</color>       <!-- 状态条底；主色字 8.01:1 -->
+    <color name="primary_container">#DBEAFE</color>
+    <color name="on_primary_container">#0F172A</color> <!-- 14.63:1 -->
+    <color name="white_40">#66FFFFFF</color>       <!-- 品牌区辅助文字（叠在渐变上） -->
 
-    <!-- 辅助色：青 -->
-    <color name="secondary">#12B3A8</color>
-    <color name="on_secondary">#FFFFFF</color>
-    <color name="secondary_container">#C7F4EE</color>
-    <color name="on_secondary_container">#033A34</color>
+    <!-- ===== 强调色（服务端 c-accent #b45309）===== -->
+    <color name="accent">#B45309</color>           <!-- 白字 5.02:1；#FFFBEB 上 4.84:1 -->
+    <color name="accent_600">#92400E</color>
+    <color name="accent_container">#FDE68A</color>
+    <color name="on_accent_container">#0F172A</color>
+    <color name="accent_50">#FFFBEB</color>
 
-    <!-- 第三色：天蓝 -->
-    <color name="tertiary">#0EA5E9</color>
-    <color name="on_tertiary">#FFFFFF</color>
-    <color name="tertiary_container">#D2EFFD</color>
-    <color name="on_tertiary_container">#06324A</color>
-
-    <!-- 表面与背景 -->
+    <!-- ===== 背景 / 表面（服务端 c-bg #f8fafc，c-text #0f172a）===== -->
+    <color name="background">#F8FAFC</color>
     <color name="surface">#FFFFFF</color>
-    <color name="surface_variant">#EAF1F8</color>
-    <color name="on_surface">#17263A</color>
-    <color name="on_surface_variant">#55667A</color>
-    <color name="background">#F4F7FB</color>
-    <color name="on_background">#17263A</color>
-    <color name="outline">#C4D2E1</color>
-    <color name="outline_variant">#DCE5EF</color>
+    <color name="surface_2">#F1F5F9</color>
+    <color name="surface_3">#E9EEF6</color>
+    <color name="surface_variant">#F1F5F9</color>
+    <color name="on_surface">#0F172A</color>        <!-- 白底 17.85:1 -->
+    <color name="on_surface_variant">#475569</color> <!-- 白底 7.58:1 -->
+    <color name="text_tertiary">#64748B</color>     <!-- 白底 4.76:1；#F8FAFC 上 4.55:1 -->
+    <color name="text_disabled">#94A3B8</color>     <!-- 仅禁用/装饰，不承载正文 -->
+    <color name="outline">#CBD5E1</color>
+    <color name="outline_variant">#E2E8F0</color>
+    <color name="divider">#EEF2F7</color>
 
-    <!-- 错误/拦截 -->
-    <color name="error">#D72C2C</color>
+    <!-- ===== 工具栏 / 地址栏 ===== -->
+    <color name="toolbar_bg">#FFFFFF</color>
+    <color name="address_bg">#F1F5F9</color>
+    <color name="address_hint">#475569</color>      <!-- on #F1F5F9 6.92:1（#64748B 仅 4.34 不达标） -->
+    <color name="address_text">#0F172A</color>
+    <color name="nav_icon">#475569</color>
+    <color name="nav_icon_disabled">#94A3B8</color>
+
+    <!-- ===== 语义状态色 ===== -->
+    <color name="success">#047857</color>          <!-- 白字 5.48:1 -->
+    <color name="status_ok">#059669</color>        <!-- 仅状态点，3.77:1 -->
+    <color name="success_container">#ECFDF5</color>
+    <color name="error">#B91C1C</color>            <!-- 白字 6.47:1；#FEF2F2 上 5.91:1 -->
+    <color name="error_container">#FEF2F2</color>
+    <color name="error_border">#FECACA</color>
+    <color name="on_error_container">#0F172A</color>
+    <color name="warning">#B45309</color>
+    <color name="warning_container">#FFFBEB</color>
+
+    <!-- ===== 兼容旧引用（themes/布局仍在用，值统一收敛到新令牌）===== -->
+    <color name="on_secondary">#FFFFFF</color>
+    <color name="on_secondary_container">#0F172A</color>
+    <color name="on_tertiary">#FFFFFF</color>
+    <color name="on_tertiary_container">#0F172A</color>
+    <color name="on_background">#0F172A</color>
     <color name="on_error">#FFFFFF</color>
-    <color name="error_container">#FDE3E3</color>
-    <color name="on_error_container">#5C1212</color>
-
-    <!-- 工具栏 -->
-    <color name="toolbar_bg">#FDFEFF</color>
-    <color name="address_bg">#EEF3F9</color>
-    <color name="address_text">#17263A</color>
-    <color name="nav_icon">#42546B</color>
-
-    <!-- 兼容旧引用 -->
-    <color name="primary_dark">#155DB8</color>
-    <color name="bg">#F4F7FB</color>
-    <color name="text_main">#17263A</color>
-    <color name="text_muted">#55667A</color>
+    <color name="secondary_container">#ECFDF5</color>
+    <color name="tertiary_container">#E0F2FE</color>
+    <color name="primary_dark">#1E3A8A</color>
+    <color name="bg">#F8FAFC</color>
+    <color name="text_main">#0F172A</color>
+    <color name="text_muted">#475569</color>
 </resources>

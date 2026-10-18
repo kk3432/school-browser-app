@@ -1,22 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
+    <!--
+      Theme.CampusBrowser —— v0.9.0 设计系统
+      颜色令牌对齐服务端 wwwroot/styles.css；禁止在布局/Kotlin 中写死颜色。
+      文档：APP界面优化规划.md 第 3 章
+    -->
     <style name="Theme.CampusBrowser" parent="Theme.Material3.Light.NoActionBar">
         <!-- 主色 -->
         <item name="colorPrimary">@color/primary</item>
         <item name="colorOnPrimary">@color/on_primary</item>
         <item name="colorPrimaryContainer">@color/primary_container</item>
         <item name="colorOnPrimaryContainer">@color/on_primary_container</item>
-        <!-- 辅助色 -->
-        <item name="colorSecondary">@color/secondary</item>
+        <!-- 辅助色（成功/正向状态） -->
+        <item name="colorSecondary">@color/success</item>
         <item name="colorOnSecondary">@color/on_secondary</item>
-        <item name="colorSecondaryContainer">@color/secondary_container</item>
+        <item name="colorSecondaryContainer">@color/success_container</item>
         <item name="colorOnSecondaryContainer">@color/on_secondary_container</item>
-        <!-- 第三色 -->
-        <item name="colorTertiary">@color/tertiary</item>
-        <item name="colorOnTertiary">@color/on_tertiary</item>
-        <item name="colorTertiaryContainer">@color/tertiary_container</item>
-        <item name="colorOnTertiaryContainer">@color/on_tertiary_container</item>
+        <!-- 第三色（强调/警示） -->
+        <item name="colorTertiary">@color/accent</item>
+        <item name="colorOnTertiary">@color/on_primary</item>
+        <item name="colorTertiaryContainer">@color/accent_container</item>
+        <item name="colorOnTertiaryContainer">@color/on_accent_container</item>
         <!-- 表面/背景 -->
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnSurface">@color/on_surface</item>
@@ -31,32 +36,101 @@
         <item name="colorOnError">@color/on_error</item>
         <item name="colorErrorContainer">@color/error_container</item>
         <item name="colorOnErrorContainer">@color/on_error_container</item>
-        <!-- 系统栏 -->
+        <!-- 图标/控件默认色 -->
+        <item name="colorControlNormal">@color/nav_icon</item>
+        <item name="colorControlActivated">@color/primary</item>
+        <!-- 系统栏（白底深色图标，与工具栏连成一体） -->
         <item name="android:statusBarColor">@color/toolbar_bg</item>
         <item name="android:navigationBarColor">@color/toolbar_bg</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
         <item name="android:windowBackground">@color/background</item>
+        <!-- 关闭 OEM 强制深色（本轮不做暗色模式） -->
+        <item name="android:forceDarkAllowed" tools:targetApi="29">false</item>
+        <!-- 刘海屏：横屏时允许内容延伸到短边（教学平板多为刘海/挖孔屏） -->
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="28">shortEdges</item>
         <!-- 组件形状 -->
         <item name="materialButtonStyle">@style/Widget.Campus.Button</item>
         <item name="textInputStyle">@style/Widget.Campus.TextInput</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Campus.Dialog</item>
     </style>
 
-    <!-- 胶囊主按钮 -->
+    <!-- 统一按钮：48dp 最小触摸高度、12dp 圆角、16sp -->
     <style name="Widget.Campus.Button" parent="Widget.Material3.Button">
-        <item name="cornerRadius">16dp</item>
-        <item name="android:textSize">16sp</item>
-        <item name="android:letterSpacing">0.02</item>
-        <item name="android:paddingTop">12dp</item>
-        <item name="android:paddingBottom">12dp</item>
+        <item name="cornerRadius">@dimen/radius_lg</item>
+        <item name="android:textSize">@dimen/text_subtitle</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:minHeight">@dimen/button_height</item>
+        <item name="android:minWidth">@dimen/button_height</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingLeft">@dimen/space_4</item>
+        <item name="android:paddingRight">@dimen/space_4</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <!-- 次级按钮（描边） -->
+    <style name="Widget.Campus.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="cornerRadius">@dimen/radius_lg</item>
+        <item name="android:textSize">@dimen/text_subtitle</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:minHeight">@dimen/button_height</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
     <!-- 圆角描边输入框 -->
     <style name="Widget.Campus.TextInput" parent="Widget.Material3.TextInputLayout.OutlinedBox">
-        <item name="boxCornerRadiusTopStart">14dp</item>
-        <item name="boxCornerRadiusTopEnd">14dp</item>
-        <item name="boxCornerRadiusBottomStart">14dp</item>
-        <item name="boxCornerRadiusBottomEnd">14dp</item>
+        <item name="boxCornerRadiusTopStart">@dimen/radius_xl</item>
+        <item name="boxCornerRadiusTopEnd">@dimen/radius_xl</item>
+        <item name="boxCornerRadiusBottomStart">@dimen/radius_xl</item>
+        <item name="boxCornerRadiusBottomEnd">@dimen/radius_xl</item>
+        <item name="boxStrokeWidth">1dp</item>
+        <item name="boxStrokeWidthFocused">2dp</item>
+    </style>
+
+    <!-- 工具栏图标按钮：48dp 触摸区 + 24dp 视觉 + 禁用态变色 -->
+    <style name="Widget.Campus.ToolbarIcon" parent="Widget.AppCompat.ActionButton">
+        <item name="android:layout_width">@dimen/toolbar_icon_box</item>
+        <item name="android:layout_height">@dimen/toolbar_icon_box</item>
+        <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+        <item name="android:padding">@dimen/space_3</item>
+        <item name="android:scaleType">centerInside</item>
+        <item name="android:contentDescription">@null</item>
+    </style>
+
+    <!-- 文字样式阶梯 -->
+    <style name="TextAppearance.Campus.Title" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textSize">@dimen/text_title</item>
+        <item name="android:textColor">@color/on_surface</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="TextAppearance.Campus.Subtitle" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textSize">@dimen/text_subtitle</item>
+        <item name="android:textColor">@color/on_surface</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="TextAppearance.Campus.Body" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textSize">@dimen/text_body</item>
+        <item name="android:textColor">@color/on_surface_variant</item>
+    </style>
+
+    <style name="TextAppearance.Campus.Caption" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">@dimen/text_caption</item>
+        <item name="android:textColor">@color/text_tertiary</item>
+    </style>
+
+    <!-- 对话框主题（PIN 弹窗用） -->
+    <style name="ThemeOverlay.Campus.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorOnPrimary">@color/on_primary</item>
+        <item name="android:textColorPrimary">@color/on_surface</item>
+        <item name="android:background">@color/surface</item>
     </style>
 
 </resources>
