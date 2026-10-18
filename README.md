@@ -12,6 +12,7 @@
 | 运行环境 | Android 7.0+（minSdk 24）/ targetSdk 34 / 系统 WebView |
 | 体积 | release 约 3.77 MB（3,957,557 B；R8 混淆 + 资源压缩，仅 arm64-v8a / armeabi-v7a） |
 | 签名 | debug keystore（SHA-256 `9E:18:19:8C:...:97:B4`），**可覆盖安装旧版** |
+| 下载 | [v0.9.0 Release](https://github.com/kk3432/school-browser-app/releases/tag/v0.9.0) · `CampusBrowser-0.9.0.apk`（3,957,557 B） |
 | **服务端** | v0.8.0+ 全部功能可用（新字段一律可选）；**服务端 v0.8.3 起强制校验 UA**，因此要求 APP ≥ v0.7.0 —— APP 的所有请求都自带 `User-Agent: CampusBrowser/{版本} OkHttp/4.12`，`/api/v1/public-key` 也一样 |
 
 > 版本对应：**v0.9.0 为 APP 界面改版**（设计令牌对齐服务端后台 + 加载/错误/拦截/空态四态 + 无障碍 + 大屏适配），**服务端无需升级**（v0.8.4 即可，接口未变，配置 `schema_version` 仍为 1）。
